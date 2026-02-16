@@ -2702,12 +2702,19 @@ function kpiModalOpen(kpiId){
   if(!meta) return;
   const m = document.getElementById("kpiModal");
   if(!m) return;
-  document.getElementById("kpiModalTitle").textContent = meta.title || "Индекс";
-  document.getElementById("kpiModalSub").textContent = meta.sub || "";
-  document.getElementById("kpiModalWhat").textContent = meta.what || "—";
-  document.getElementById("kpiModalHow").textContent = meta.how || "—";
-  document.getElementById("kpiModalImpact").textContent = meta.impact || "—";
-  document.getElementById("kpiModalDo").innerHTML = meta.doHtml || "—";
+  // Defensive: modal markup may vary across pages
+  const tEl = document.getElementById("kpiModalTitle");
+  if(tEl) tEl.textContent = meta.title || "Индекс";
+  const sEl = document.getElementById("kpiModalSub");
+  if(sEl) sEl.textContent = meta.sub || "";
+  const wEl = document.getElementById("kpiModalWhat");
+  if(wEl) wEl.textContent = meta.what || "—";
+  const hEl = document.getElementById("kpiModalHow");
+  if(hEl) hEl.textContent = meta.how || "—";
+  const iEl = document.getElementById("kpiModalImpact");
+  if(iEl) iEl.textContent = meta.impact || "—";
+  const dEl = document.getElementById("kpiModalDo");
+  if(dEl) dEl.innerHTML = meta.doHtml || "—";
   // Data + confidence (synthetic benchmarks)
   const dataEl = document.getElementById("kpiModalData");
   if(dataEl) dataEl.innerHTML = kpiBuildDataHtml(kpiId);
@@ -2731,7 +2738,8 @@ function kpiModalOpen(kpiId){
     }
   }
 
-  document.getElementById("kpiModalNote").textContent = meta.note || "";
+  const nEl = document.getElementById("kpiModalNote");
+  if(nEl) nEl.textContent = meta.note || "";
   m.setAttribute("aria-hidden","false");
   // focus close for accessibility
   const closeBtn = document.getElementById("kpiModalClose");
@@ -3571,7 +3579,8 @@ show();
     <div class="head">
       <div>
         <div class="title" id="kpiModalTitle">Индекс</div>
-        </div>
+        <div class="sub" id="kpiModalSub"></div>
+      </div>
       <button class="closeBtn" id="kpiModalClose" aria-label="Закрыть">✕</button>
     </div>
     <div class="body">
