@@ -642,9 +642,9 @@
         probChart.data.datasets[0].data = series.prob || [];
         probChart.update();
 
-        const latest = Array.isArray(data.latest) ? data.latest : [];
         const tb = document.getElementById("latestTbody");
-        tb.innerHTML = latest.slice(0,10).map(r =>
+        const latestUnique = (latestCompanies||[]).slice(0,10);
+        tb.innerHTML = latestUnique.map(r =>
           "<tr>"
             + "<td><b>"+escapeHtml(r.company || "—")+"</b></td>"
             + "<td>"+fmtPct(r.psi)+"</td>"
