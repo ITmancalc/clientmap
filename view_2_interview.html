@@ -1165,19 +1165,50 @@ function createScoreRow(tbody,item,type){
   const mode = (typeof item==="string") ? "both" : (item?.mode||"both");
   const tr=document.createElement("tr");
   tr.dataset.mode = mode;
+
   tr.innerHTML = `
-    <td>${label}</td>
     <td>
-      <select class="${type}-score">
+      <span class="statusDot dotRed maturityDot" style="margin-right:10px" title="Поле не заполнено"></span>
+      ${label}
+    </td>
+    <td>
+      <select class="${type}-score" data-origin="">
         ${type==="risk"
-          ? `<option value="">Не знаю</option><option value="0">Нет</option><option value="1">Да</option>`
-          : `<option value="">Не знаю</option><option value="0">Нет</option><option value="1">Частично</option><option value="2">Да</option>`
+          ? `<option value="">—</option><option value="0">Нет</option><option value="1">Да</option>`
+          : `<option value="">—</option><option value="0">Нет</option><option value="1">Частично</option><option value="2">Да</option>`
         }
       </select>
     </td>
     <td><input class="${type}-note" placeholder="Комментарий (по желанию)"></td>
   `;
   tbody.appendChild(tr);
+
+  // dot behavior: red(empty) / green(user) / blue(synthetic)
+  const dot = tr.querySelector(".maturityDot");
+  const sel = tr.querySelector("select");
+  const updateDot = ()=>{
+    if(!dot || !sel) return;
+    const v = (sel.value ?? "").toString().trim();
+    if(!v){
+      dot.classList.remove("dotBlue","dotGreen");
+      dot.classList.add("dotRed");
+      dot.title = "Поле не заполнено";
+      return;
+    }
+    const synthetic = (sel.dataset.synthetic === "1") || (sel.dataset.origin === "synthetic");
+    dot.classList.remove("dotRed","dotBlue","dotGreen");
+    dot.classList.add(synthetic ? "dotBlue" : "dotGreen");
+    dot.title = synthetic ? "Синтетически заполнено (можно отредактировать)" : "Заполнено менеджером";
+  };
+
+  // user edit -> user origin, clear synthetic
+  sel.addEventListener("change", ()=>{
+    sel.dataset.origin = "user";
+    if(sel.dataset.synthetic === "1") delete sel.dataset.synthetic;
+    updateDot();
+  }, {passive:true});
+
+  updateDot();
 }
 
 function ensureBaseTables(){
@@ -1447,7 +1478,13 @@ function applyQuickSynthetics(){
     if(cur !== "" && cur !== "0" && el.dataset.synthetic !== "1") return;
     el.value = String(v);
     el.dataset.synthetic = "1";
+    el.dataset.origin = "synthetic";
   };
+
+  // ===== Finance base synthetic defaults (помогают стартовать, можно менять) =====
+  setSynthField("salary", 200000);
+  setSynthField("manualPct", 20);
+  setSynthField("unusedPct", 15);
 
   // vmUnusedPct: если облако/гибрид — 20, иначе 10
   const hostingModel = (document.getElementById("hostingModel")?.value || "").trim();
@@ -3638,8 +3675,27 @@ show();
     });
   }
 
+  function updateMaturityOne(tr){
+    if(!tr) return;
+    const dot = tr.querySelector(".maturityDot");
+    const sel = tr.querySelector("select");
+    if(!dot || !sel) return;
+    const v = (sel.value ?? "").toString().trim();
+    if(!v){
+      dot.classList.remove("dotBlue","dotGreen");
+      dot.classList.add("dotRed");
+      dot.title = "Поле не заполнено";
+      return;
+    }
+    const synthetic = (sel.dataset.synthetic === "1") || (sel.dataset.origin === "synthetic");
+    dot.classList.remove("dotRed","dotBlue","dotGreen");
+    dot.classList.add(synthetic ? "dotBlue" : "dotGreen");
+    dot.title = synthetic ? "Синтетически заполнено (можно отредактировать)" : "Заполнено менеджером";
+  }
+
   function updateAll(){
     document.querySelectorAll("input,select,textarea").forEach(updateOne);
+    document.querySelectorAll("#techTbody tr, #procTbody tr, #riskTbody tr").forEach(updateMaturityOne);
   }
 
   document.addEventListener("DOMContentLoaded", ()=>{
