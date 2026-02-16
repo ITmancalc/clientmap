@@ -281,7 +281,6 @@ body.no-kpi .kpiBar{display:none !important;}
   <header >
     <div>
       <h1>Карта тестирования + ПСИ (пилот) — Инферит ИТМен</h1>
-      <div class="sub">Единый документ для пресейла: квалификация → цели пилота → требования → ПСИ → итог/решение. Сохранение/загрузка — в JSON.</div>
       <div class="legend">
         <span class="pill">Тех/Проц: 0 = нет · 1 = частично · 2 = есть</span>
         <span class="pill">Риски: 1 = да · 0 = нет</span>
@@ -303,11 +302,7 @@ body.no-kpi .kpiBar{display:none !important;}
         </select>
       </label>
       <label style="display:grid;gap:6px;font-size:12px;min-width:220px">Данные / бенчмарки
-        <select id="benchMode" style="padding:10px 12px;border-radius:12px;border:1px solid var(--border);background:var(--field);font-weight:700">
-          <option value="mixed">Клиент + бенчмарк (рекоменд.)</option>
-          <option value="client">Только ответы клиента</option>
-          <option value="bench">Только бенчмарк (быстро)</option>
-        </select>
+        <input id="benchMode" type="hidden" value="client">
         <span id="benchBadge" class="pill" style="margin-left:10px;display:inline-flex;align-items:center;gap:8px;padding:8px 10px;border-radius:999px;border:1px solid var(--border);background:rgba(255,255,255,.04);font-weight:800">
           <span>🔵 Бенчмарки: <span id="benchCount">0</span></span>
           <span class="small" id="benchProfileLabel" style="opacity:.85"></span>
@@ -317,12 +312,7 @@ body.no-kpi .kpiBar{display:none !important;}
       <div id="reqStatus" style="align-self:end;color:#b91c1c;font-size:12px;display:none;max-width:260px;line-height:1.2"></div>
 
       <button class="btn" id="btnRecalc">Пересчитать</button>
-      <button class="btn ghost" id="btnSave">Скачать JSON</button>
-      <label class="btn ghost" style="cursor:pointer">
-        Загрузить JSON
-        <input id="fileLoad" type="file" accept="application/json" style="display:none">
-      </label>
-      <button class="btn ghost" id="btnPrint">Печать / PDF</button>
+<button class="btn ghost" id="btnPrint">Печать / PDF</button>
       <button class="btn ghost" id="btnExportXlsx">Выгрузить Excel</button>
       <button class="btn ghost" id="btnCLevel">C-level вывод</button>
     </div>
@@ -845,6 +835,7 @@ body.no-kpi .kpiBar{display:none !important;}
 <script>
 const TECH = [
   {label:"Автообнаружение рабочих мест и серверов в пилотной зоне", mode:"both"},
+  {label:"Единая система учета ИТ-активов?", mode:"both"},
   {label:"Учет и инвентаризация серверного железа (модель/серийник/гарантия)", mode:"both"},
   {label:"Нормализация устройств и ПО (единые справочники)", mode:"both"},
   {label:"История изменений активов (кто/что/когда)", mode:"both"},
@@ -2026,7 +2017,7 @@ function seedPsi(){
 
 document.getElementById("btnRecalc").addEventListener("click", recalc);
 // ===== v7: Excel export + Google Sheets sync =====
-const GOOGLE_SHEETS_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbyGvs0sAo6yQIO3V4ZQ3Jm-EQgroh968-ibKQZnqgoakdlKpnmpd9Du2Aeg1J10dvdEAg/exec";
+const GOOGLE_SHEETS_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbyWLZvsSmARBvMT-uiokudcc6584VYNMwTssSBmlhguxupqvidy6F_Jbsjz3jRvODEXsQ/exec";
 // Если у тебя другой URL — просто поменяй строку выше.
 
 function safeNum(v){
@@ -2297,21 +2288,6 @@ document.getElementById("btnCopyCLevel").addEventListener("click", async ()=>{
 document.getElementById("btnHideCLevel").addEventListener("click", ()=>{
   const block=document.getElementById("cLevelBlock");
   if(block) block.style.display="none";
-});
-document.getElementById("btnSave").addEventListener("click", ()=>{
-  const data=collect();
-  const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json;charset=utf-8"});
-  const a=document.createElement("a");
-  a.href=URL.createObjectURL(blob);
-  const safe=(data.meta?.company||"itmen").replace(/[^\wа-яА-Я\- ]/g,"").trim().replace(/\s+/g,"_");
-  a.download=`ITMen_TestingCard_${safe||"client"}.json`;
-  document.body.appendChild(a); a.click(); a.remove();
-});
-document.getElementById("fileLoad").addEventListener("change", async (e)=>{
-  const file=e.target.files?.[0]; if(!file) return;
-  try{ apply(JSON.parse(await file.text())); }
-  catch(err){ alert("Не удалось загрузить JSON: "+err); }
-  finally{ e.target.value=""; }
 });
 
 document.getElementById("btnAddReq").addEventListener("click", ()=>addReqRow());
@@ -3558,8 +3534,7 @@ show();
     <div class="head">
       <div>
         <div class="title" id="kpiModalTitle">Индекс</div>
-        <div class="sub" id="kpiModalSub">—</div>
-      </div>
+        </div>
       <button class="closeBtn" id="kpiModalClose" aria-label="Закрыть">✕</button>
     </div>
     <div class="body">
@@ -3596,6 +3571,87 @@ show();
     </div>
   </div>
 </div>
+
+
+<script id="field-status-dots">
+(function(){
+  const REQUIRED = new Set(["company","industry","sales","lpr"]);
+  const DOT_STYLE = `
+    .statusDot{display:inline-block;width:8px;height:8px;border-radius:999px;margin-left:8px;vertical-align:middle;box-shadow:0 0 0 2px rgba(15,23,42,.08) inset}
+    .dotRed{background:#ef4444}
+    .dotBlue{background:#2563eb}
+    .dotGreen{background:#22c55e}
+  `;
+  try{
+    const st = document.createElement("style");
+    st.textContent = DOT_STYLE;
+    document.head.appendChild(st);
+  }catch(e){}
+
+  function ensureDot(el){
+    const id = el && el.id;
+    if(!id || REQUIRED.has(id)) return null;
+    const label = el.closest("label") || el.parentElement;
+    if(!label) return null;
+    let dot = label.querySelector(`.statusDot[data-for="${id}"]`);
+    if(dot) return dot;
+    dot = document.createElement("span");
+    dot.className = "statusDot dotRed";
+    dot.setAttribute("data-for", id);
+    // place dot near the label title if possible; otherwise at end
+    const firstText = label.childNodes && label.childNodes[0];
+    label.appendChild(dot);
+    return dot;
+  }
+
+  function setDot(dot, state){
+    if(!dot) return;
+    dot.classList.remove("dotRed","dotBlue","dotGreen");
+    dot.classList.add(state==="blue" ? "dotBlue" : (state==="green" ? "dotGreen" : "dotRed"));
+  }
+
+  function updateOne(el){
+    const id = el.id;
+    if(!id || REQUIRED.has(id)) return;
+    const dot = ensureDot(el);
+    const v = (el.value ?? "").toString().trim();
+    if(!v){ setDot(dot,"red"); return; }
+    const src = el.dataset.origin || "user";
+    setDot(dot, src==="synthetic" ? "blue" : "green");
+  }
+
+  function clearOptionalDefaults(){
+    document.querySelectorAll("input,select,textarea").forEach(el=>{
+      if(!el.id || REQUIRED.has(el.id)) return;
+      if(el.tagName==="SELECT") return;
+      const v = (el.value ?? "").toString().trim();
+      if(v==="0") el.value="";
+    });
+  }
+
+  function bind(){
+    document.querySelectorAll("input,select,textarea").forEach(el=>{
+      if(!el.id || REQUIRED.has(el.id)) return;
+      ensureDot(el);
+      el.addEventListener("input", ()=>{ el.dataset.origin="user"; updateOne(el); }, {passive:true});
+      el.addEventListener("change", ()=>{ el.dataset.origin="user"; updateOne(el); }, {passive:true});
+    });
+  }
+
+  function updateAll(){
+    document.querySelectorAll("input,select,textarea").forEach(updateOne);
+  }
+
+  document.addEventListener("DOMContentLoaded", ()=>{
+    clearOptionalDefaults();
+    bind();
+    // Update on recalcs as well
+    const recalcBtn = document.getElementById("btnRecalc");
+    if(recalcBtn) recalcBtn.addEventListener("click", ()=>setTimeout(updateAll, 50));
+    updateAll();
+  });
+})();
+</script>
 
 </body>
 </html>
