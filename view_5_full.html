@@ -1363,7 +1363,7 @@ function applyQuickSynthetics(){
     const sel = tr.querySelector("select");
     if(!sel) return;
     const cur = (sel.value ?? "").trim();
-    if(cur !== "" && sel.dataset.synthetic !== "1") return;
+    if(cur !== "" && cur !== "0" && sel.dataset.synthetic !== "1") return;
     sel.value = String(val);
     sel.dataset.synthetic = "1";
     sel.dataset.origin = "synthetic";
@@ -1379,7 +1379,7 @@ function applyQuickSynthetics(){
         const sel = tr.querySelector("select");
         if(!sel) return;
         const cur = (sel.value ?? "").trim();
-        if(cur !== "" && sel.dataset.synthetic !== "1") return;
+        if(cur !== "" && cur !== "0" && sel.dataset.synthetic !== "1") return;
         sel.value = "0";
         sel.dataset.synthetic = "1";
         sel.dataset.origin = "synthetic";
