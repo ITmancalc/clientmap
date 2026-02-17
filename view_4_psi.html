@@ -2051,6 +2051,7 @@ function seedPsi(){
 document.getElementById("btnRecalc").addEventListener("click", recalc);
 // ===== v7: Excel export + Google Sheets sync =====
 const GOOGLE_SHEETS_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbx8TNmpzckkE9m6zrGNBbfq0mZwXJuE3j98xpdtHEAKEMIN0q1ws2BJiiCKHkPCZE9Z9Q/exec";
+console.log("✅ Using Google Sheets WebApp URL:", GOOGLE_SHEETS_WEBAPP_URL);
 // Если у тебя другой URL — просто поменяй строку выше.
 
 function safeNum(v){
@@ -2200,31 +2201,30 @@ async function syncToGoogleSheets(reason){
       }
 
       const jsonStr = JSON.stringify(payload);
-const formBody = new URLSearchParams({ action: "save", payload: jsonStr }).toString();
-let sent = false;
+      let sent = false;
 
-// 1) sendBeacon (лучший вариант: без CORS, без preflight)
-try{
-  if(navigator && typeof navigator.sendBeacon === "function"){
-    const blob = new Blob([formBody], { type:"application/x-www-form-urlencoded;charset=UTF-8" }); // simple request
-    sent = navigator.sendBeacon(GOOGLE_SHEETS_WEBAPP_URL, blob);
-  }
-}catch(_e){ sent = false; }
+      // 1) sendBeacon (лучший вариант: без CORS, без preflight)
+      try{
+        if(navigator && typeof navigator.sendBeacon === "function"){
+          const blob = new Blob([jsonStr], { type:"text/plain;charset=UTF-8" }); // text/plain => no preflight
+          sent = navigator.sendBeacon(GOOGLE_SHEETS_WEBAPP_URL, blob);
+        }
+      }catch(_e){ sent = false; }
 
-// 2) fallback: fetch no-cors (simple request, ответ не читаем)
-if(!sent){
-  try{
-    await fetch(GOOGLE_SHEETS_WEBAPP_URL, {
-      method:"POST",
-      mode:"no-cors",
-      headers:{ "Content-Type":"application/x-www-form-urlencoded;charset=UTF-8" },
-      body: formBody
-    });
-    sent = true;
-  }catch(_e2){ sent = false; }
-}
+      // 2) fallback: fetch no-cors (тоже без preflight, но ответ не читаем)
+      if(!sent){
+        try{
+          await fetch(GOOGLE_SHEETS_WEBAPP_URL, {
+            method:"POST",
+            mode:"no-cors",
+            headers:{ "Content-Type":"text/plain;charset=UTF-8" },
+            body: jsonStr
+          });
+          sent = true;
+        }catch(_e2){ sent = false; }
+      }
 
-if(st){
+      if(st){
         st.style.color = sent ? "#16a34a" : "#b91c1c";
         st.textContent = sent
           ? "✅ Отправлено. Если в таблице не появилось — WebApp должен быть доступен 'Anyone'."
