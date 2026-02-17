@@ -2204,30 +2204,31 @@ async function syncToGoogleSheets(reason){
       }
 
       const jsonStr = JSON.stringify(payload);
-      let sent = false;
+const formBody = new URLSearchParams({ action: "save", payload: jsonStr }).toString();
+let sent = false;
 
-      // 1) sendBeacon (лучший вариант: без CORS, без preflight)
-      try{
-        if(navigator && typeof navigator.sendBeacon === "function"){
-          const blob = new Blob([jsonStr], { type:"text/plain;charset=UTF-8" }); // text/plain => no preflight
-          sent = navigator.sendBeacon(GOOGLE_SHEETS_WEBAPP_URL, blob);
-        }
-      }catch(_e){ sent = false; }
+// 1) sendBeacon (лучший вариант: без CORS, без preflight)
+try{
+  if(navigator && typeof navigator.sendBeacon === "function"){
+    const blob = new Blob([formBody], { type:"application/x-www-form-urlencoded;charset=UTF-8" }); // simple request
+    sent = navigator.sendBeacon(GOOGLE_SHEETS_WEBAPP_URL, blob);
+  }
+}catch(_e){ sent = false; }
 
-      // 2) fallback: fetch no-cors (тоже без preflight, но ответ не читаем)
-      if(!sent){
-        try{
-          await fetch(GOOGLE_SHEETS_WEBAPP_URL, {
-            method:"POST",
-            mode:"no-cors",
-            headers:{ "Content-Type":"text/plain;charset=UTF-8" },
-            body: jsonStr
-          });
-          sent = true;
-        }catch(_e2){ sent = false; }
-      }
+// 2) fallback: fetch no-cors (simple request, ответ не читаем)
+if(!sent){
+  try{
+    await fetch(GOOGLE_SHEETS_WEBAPP_URL, {
+      method:"POST",
+      mode:"no-cors",
+      headers:{ "Content-Type":"application/x-www-form-urlencoded;charset=UTF-8" },
+      body: formBody
+    });
+    sent = true;
+  }catch(_e2){ sent = false; }
+}
 
-      if(st){
+if(st){
         st.style.color = sent ? "#16a34a" : "#b91c1c";
         st.textContent = sent
           ? "✅ Отправлено. Если в таблице не появилось — WebApp должен быть доступен 'Anyone'."
@@ -3175,40 +3176,30 @@ function buildSheetPayloadExact(){
   return trimmed;
 }
 
-// Override sync to Sheets: send as form field `payload` (Apps Script usually reads e.parameter.payload)
-async function syncToGoogleSheets(reason){
+// Override sync to Sheets to use exact payload
+async function syncToGoogleSheets(){
   const url = (typeof GOOGLE_SHEETS_WEBAPP_URL!=="undefined" && GOOGLE_SHEETS_WEBAPP_URL) ? GOOGLE_SHEETS_WEBAPP_URL : null;
-  if(!url){ console.warn("Google Sheets URL is not set"); return; }
-
-  // Update UI status if exists
-  const st = document.getElementById("gsyncStatus");
-  const setStatus = (txt, color) => { try{ if(st){ st.style.display="block"; st.style.color=color; st.textContent=txt; } }catch(e){} };
-  setStatus("⏫ Отправляю в Google Sheets…", "#0ea5e9");
-
+  if(!url){
+    console.warn("Google Sheets URL is not set");
+    return;
+  }
   const payload = buildSheetPayloadExact();
-  const bodyStr = new URLSearchParams({ payload: JSON.stringify(payload), reason: String(reason||"") }).toString();
+  const body = JSON.stringify(payload);
 
   // 1) Beacon (no CORS / no preflight)
   try{
     if(navigator.sendBeacon){
-      const ok = navigator.sendBeacon(url, new Blob([bodyStr], {type:"application/x-www-form-urlencoded;charset=UTF-8"}));
-      if(ok){
-        setStatus("✅ Отправлено (beacon).", "#16a34a");
-        setTimeout(()=>{ try{ if(st) st.style.display='none'; }catch(e){} }, 4500);
-        return;
-      }
+      const ok = navigator.sendBeacon(url, new Blob([body], {type:"text/plain;charset=utf-8"}));
+      if(ok){ console.log("✅ Sheets sync sent (beacon)"); return; }
     }
   }catch(e){ console.warn("Beacon failed", e); }
 
-  // 2) Fetch no-cors fallback (response is opaque, but request is sent)
+  // 2) Fetch no-cors fallback
   try{
-    await fetch(url, {method:"POST", mode:"no-cors", body: bodyStr, headers: {"Content-Type":"application/x-www-form-urlencoded;charset=UTF-8"}});
-    setStatus("✅ Отправлено (fetch).", "#16a34a");
-    setTimeout(()=>{ try{ if(st) st.style.display='none'; }catch(e){} }, 4500);
+    await fetch(url, {method:"POST", mode:"no-cors", body, headers: {"Content-Type":"text/plain;charset=utf-8"}});
+    console.log("✅ Sheets sync sent (fetch no-cors)");
   }catch(e){
     console.error("❌ Sheets sync failed", e);
-    setStatus("⚠️ Не удалось отправить. Проверь URL/доступ WebApp.", "#b91c1c");
-    setTimeout(()=>{ try{ if(st) st.style.display='none'; }catch(e){} }, 6500);
   }
 }
 /* ===== end patch ===== */
