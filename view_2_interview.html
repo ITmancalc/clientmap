@@ -319,77 +319,70 @@ body.no-kpi .kpiBar{display:none !important;}
 
     <!-- KPI moved to header -->
     <div class="kpiBar">
+  <div class="kpiGroupTitle">Клиентские индексы</div>
 
-      <div class="stat" id="kPSI">
-        <div class="label">PSI 2.0 (итог)</div>
-        <div class="value mono" id="psi2Score">—%</div>
-        <div class="small" id="psi2Label">—</div>
-      </div>
-      <div class="stat" id="kTech">
-        <div class="label">Индекс тех. зрелости</div>
-        <div class="value mono" id="techIndex">—%</div>
-        <div class="small">Готовность по данным/источникам.</div>
-      </div>
-      <div class="stat" id="kProc">
-        <div class="label">Индекс процессной зрелости</div>
-        <div class="value mono" id="procIndex">—%</div>
-        <div class="small">Предсказуемость внедрения.</div>
-      </div>
-      <div class="stat" id="kRisk">
-        <div class="label">Индекс риска</div>
-        <div class="value mono" id="riskIndex">—</div>
-        <div class="small">0–1 низкий · 2–3 средний · 4–5 высокий</div>
-      </div>
-      <div class="stat" id="kCoI">
-        <div class="label">Cost of Inaction (₽/год)</div>
-        <div class="value mono" id="coiTotal">—</div>
-        <div class="small" id="coiBreakdown"></div>
-      </div>
-      <div class="stat" id="kCrit"><div class="label">Категория проекта</div><div class="value mono" id="critScore">—%</div><div class="small" id="critLabel">—</div></div>
-      <div class="stat" id="kFeas">
-        <div class="label">Индекс реализуемости требований</div>
-        <div class="value mono" id="feasScore">—%</div>
-        <div class="small">Средний балл по «возможности» (раздел 4).</div>
-      </div>
+  <div class="stat" id="kPSI">
+    <div class="label">PSI 2.0 (итог)</div>
+    <div class="value mono" id="psi2Score">—%</div>
+    <div class="small" id="psi2Label">—</div>
+  </div>
 
-      <div class="stat" id="kPain">
-        <div class="label">Индекс экономического давления</div>
-        <div class="value mono" id="painIndex">—%</div>
-        <div class="small" id="painLabel">—</div>
-      </div>
-      <div class="stat" id="kReady">
-        <div class="label">Готовность к пилоту</div>
-        <div class="value mono" id="readyIndex">—%</div>
-        <div class="small" id="readyLabel">—</div>
-      </div>
-      <div class="stat" id="kProb">
-        <div class="label">Вероятность сделки</div>
-        <div class="value mono" id="probIndex">—%</div>
-        <div class="small" id="probLabel">—</div>
-      </div>
+  <div class="stat" id="kCoI">
+    <div class="label">Cost of Inaction (₽/год)</div>
+    <div class="value mono" id="coiRub">—</div>
+    <div class="small">Потери от ручных операций, неиспользуемого ПО/VM и простоев.</div>
+  </div>
 
+  <div class="stat" id="kRecover">
+    <div class="label">Потенциал возврата бюджета</div>
+    <div class="value mono" id="recoverIndex">—%</div>
+    <div class="small" id="recoverLabel">Лицензии и виртуальные ресурсы.</div>
+  </div>
 
-      <div class="stat" id="kRecover">
-        <div class="label">Потенциал возврата бюджета</div>
-        <div class="value mono" id="recoverIndex">—%</div>
-        <div class="small" id="recoverLabel">Лицензии и виртуальные ресурсы.</div>
-      </div>
-      <div class="stat" id="kBus">
-        <div class="label">Индекс зависимости от людей</div>
-        <div class="value mono" id="busIndex">—%</div>
-        <div class="small" id="busLabel">Bus-factor и документированность.</div>
-      </div>
-      <div class="stat" id="kObsol">
-        <div class="label">Индекс технологического старения</div>
-        <div class="value mono" id="obsolIndex">—%</div>
-        <div class="small" id="obsolLabel">Устаревшие ОС/ПО и возраст парка.</div>
-      </div>
-      <div class="stat" id="kAI">
-        <div class="label">Готовность к ИИ / автоматизации</div>
-        <div class="value mono" id="aiIndex">—%</div>
-        <div class="small" id="aiLabel">Структура данных и источники.</div>
-      </div>
-    </div>
+  <div class="stat" id="kTech">
+    <div class="label">Индекс тех. зрелости</div>
+    <div class="value mono" id="techIndex">—%</div>
+    <div class="small">Готовность по данным/источникам.</div>
+  </div>
+
+  <div class="stat" id="kProc">
+    <div class="label">Индекс процессной зрелости</div>
+    <div class="value mono" id="procIndex">—%</div>
+    <div class="small">Предсказуемость внедрения.</div>
+  </div>
+
+  <div class="kpiGroupTitle">Внутренние индексы</div>
+
+  <div class="stat" id="kCrit">
+    <div class="label">Категория проекта</div>
+    <div class="value mono" id="critScore">—%</div>
+    <div class="small" id="critLabel">—</div>
+  </div>
+
+  <div class="stat" id="kFeas">
+    <div class="label">Индекс реализуемости требований к пилоту</div>
+    <div class="value mono" id="feasScore">—%</div>
+    <div class="small">Средний балл по «возможности» (раздел 4).</div>
+  </div>
+
+  <div class="stat" id="kProdFeas">
+    <div class="label">Индекс реализуемости требований к продукту</div>
+    <div class="value mono" id="prodFeasScore">—%</div>
+    <div class="small">Средний балл по «возможности» (раздел 6).</div>
+  </div>
+
+  <div class="stat" id="kPain">
+    <div class="label">Индекс экономического давления</div>
+    <div class="value mono" id="painIndex">—%</div>
+    <div class="small" id="painLabel">—</div>
+  </div>
+
+  <div class="stat" id="kProb">
+    <div class="label">Вероятность сделки</div>
+    <div class="value mono" id="probIndex">—%</div>
+    <div class="small" id="probLabel">—</div>
+  </div>
+</div>
   </header>
 
   <div class="grid">
@@ -1782,7 +1775,7 @@ const riskIndex = (riskAnswered.length>0)
     psi2 = Math.round(clamp(psi2, 0, 100));
   } else {
     // fallback: if everything missing, at least anchor PSI to visible core indices
-    const core = [techIndex, procIndex, ai].map(Number).filter(Number.isFinite);
+    const core = [techIndex, procIndex].map(Number).filter(Number.isFinite);
     if(core.length) psi2 = Math.round(core.reduce((a,b)=>a+b,0)/core.length);
   }
   document.getElementById("psi2Score").textContent = isFinite(psi2) ? `${psi2}%` : "—%";

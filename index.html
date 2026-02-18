@@ -594,10 +594,15 @@ console.log("✅ Using Google Sheets WebApp URL:", WEBAPP_URL);
         clearErr();
 
         const s = data.summary || {};
-        document.getElementById("kpiRuns").textContent = s.runs ?? "—";
-        document.getElementById("kpiCompanies").textContent = s.companies ?? "—";
+        const runsVal = (s.runs ?? data.runs ?? data.total_rows ?? data.totalRows ?? "—");
+        const companiesVal = (s.companies ?? data.companies ?? data.latest_companies ?? data.latestCompanies ?? "—");
+        document.getElementById("kpiRuns").textContent = runsVal;
+        document.getElementById("kpiCompanies").textContent = companiesVal;
 
         const latestCompanies = pickLatestPerCompany(data);
+        if(!latestCompanies || !latestCompanies.length){
+          showErr("Данных для графиков нет: убедитесь, что Apps Script action=stats возвращает список latest/rows. Синхронизация форм не гарантирует выдачу аналитики.");
+        }
         // Avg PSI by latest record per company
         const psiVals = latestCompanies.map(r => num(r.psi ?? r.psi_total ?? r.psiTotal)).filter(v => v!=null);
         const avgPsi = psiVals.length ? (psiVals.reduce((a,b)=>a+b,0)/psiVals.length) : null;

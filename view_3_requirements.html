@@ -116,7 +116,7 @@ td textarea{min-height:92px;height:92px;line-height:1.3}
 
 /* ===== Modes ===== */
 body.client-mode #projectRisksWrap{ display:none !important; }
-body.client-mode #kRisk, body.client-mode #kFeas, body.client-mode #kReady, body.client-mode #kProb{ display:none !important; }
+body.client-mode #kRisk, body.client-mode #kFeas, body.client-mode #kProdFeas, body.client-mode #kReady, body.client-mode #kProb{ display:none !important; }
 body.client-mode #clientSummaryBlock{ display:block !important; }
 body.internal-mode #clientSummaryBlock{ display:none !important; }
 
@@ -154,18 +154,18 @@ body.quick-mode [data-mode="deep"]{ display:none !important; }
 
 /* === UI PATCH v7.15: resizable req metric + wider PSI match column === */
 #reqTbody textarea{resize:both;}
-#reqTbody td:nth-child(6) textarea, 
-#reqTbody td:nth-child(6) input{
+#reqTbody td:nth-child(7) textarea, 
+#reqTbody td:nth-child(7) input{
   width:100% !important;
   min-height:64px !important;
   resize:both !important;
 }
 /* PSI table: widen "Соотв. (Да/Нет)" column */
-#psiTable th:nth-child(5), #psiTable td:nth-child(5){
+#psiTable th:nth-child(6), #psiTable td:nth-child(6){
   min-width:130px !important;
   width:130px !important;
 }
-#psiTable td:nth-child(5) select{
+#psiTable td:nth-child(6) select{
   min-width:110px !important;
 }
 
@@ -173,10 +173,12 @@ body.quick-mode [data-mode="deep"]{ display:none !important; }
 body.view-indices #cardMaturity,
 body.view-indices #cardFinance,
 body.view-indices #cardReq,
-body.view-indices #cardPSI{ display:none !important; }
+body.view-indices #cardPSI,
+
 
 body.view-interview #cardReq,
-body.view-interview #cardPSI{ display:none !important; }
+body.view-interview #cardPSI,
+
 
 body.view-req #cardMaturity,
 body.view-req #cardFinance,
@@ -319,77 +321,70 @@ body.no-kpi .kpiBar{display:none !important;}
 
     <!-- KPI moved to header -->
     <div class="kpiBar">
+  <div class="kpiGroupTitle">Клиентские индексы</div>
 
-      <div class="stat" id="kPSI">
-        <div class="label">PSI 2.0 (итог)</div>
-        <div class="value mono" id="psi2Score">—%</div>
-        <div class="small" id="psi2Label">—</div>
-      </div>
-      <div class="stat" id="kTech">
-        <div class="label">Индекс тех. зрелости</div>
-        <div class="value mono" id="techIndex">—%</div>
-        <div class="small">Готовность по данным/источникам.</div>
-      </div>
-      <div class="stat" id="kProc">
-        <div class="label">Индекс процессной зрелости</div>
-        <div class="value mono" id="procIndex">—%</div>
-        <div class="small">Предсказуемость внедрения.</div>
-      </div>
-      <div class="stat" id="kRisk">
-        <div class="label">Индекс риска</div>
-        <div class="value mono" id="riskIndex">—</div>
-        <div class="small">0–1 низкий · 2–3 средний · 4–5 высокий</div>
-      </div>
-      <div class="stat" id="kCoI">
-        <div class="label">Cost of Inaction (₽/год)</div>
-        <div class="value mono" id="coiTotal">—</div>
-        <div class="small" id="coiBreakdown"></div>
-      </div>
-      <div class="stat" id="kCrit"><div class="label">Категория проекта</div><div class="value mono" id="critScore">—%</div><div class="small" id="critLabel">—</div></div>
-      <div class="stat" id="kFeas">
-        <div class="label">Индекс реализуемости требований</div>
-        <div class="value mono" id="feasScore">—%</div>
-        <div class="small">Средний балл по «возможности» (раздел 4).</div>
-      </div>
+  <div class="stat" id="kPSI">
+    <div class="label">PSI 2.0 (итог)</div>
+    <div class="value mono" id="psi2Score">—%</div>
+    <div class="small" id="psi2Label">—</div>
+  </div>
 
-      <div class="stat" id="kPain">
-        <div class="label">Индекс экономического давления</div>
-        <div class="value mono" id="painIndex">—%</div>
-        <div class="small" id="painLabel">—</div>
-      </div>
-      <div class="stat" id="kReady">
-        <div class="label">Готовность к пилоту</div>
-        <div class="value mono" id="readyIndex">—%</div>
-        <div class="small" id="readyLabel">—</div>
-      </div>
-      <div class="stat" id="kProb">
-        <div class="label">Вероятность сделки</div>
-        <div class="value mono" id="probIndex">—%</div>
-        <div class="small" id="probLabel">—</div>
-      </div>
+  <div class="stat" id="kCoI">
+    <div class="label">Cost of Inaction (₽/год)</div>
+    <div class="value mono" id="coiRub">—</div>
+    <div class="small">Потери от ручных операций, неиспользуемого ПО/VM и простоев.</div>
+  </div>
 
+  <div class="stat" id="kRecover">
+    <div class="label">Потенциал возврата бюджета</div>
+    <div class="value mono" id="recoverIndex">—%</div>
+    <div class="small" id="recoverLabel">Лицензии и виртуальные ресурсы.</div>
+  </div>
 
-      <div class="stat" id="kRecover">
-        <div class="label">Потенциал возврата бюджета</div>
-        <div class="value mono" id="recoverIndex">—%</div>
-        <div class="small" id="recoverLabel">Лицензии и виртуальные ресурсы.</div>
-      </div>
-      <div class="stat" id="kBus">
-        <div class="label">Индекс зависимости от людей</div>
-        <div class="value mono" id="busIndex">—%</div>
-        <div class="small" id="busLabel">Bus-factor и документированность.</div>
-      </div>
-      <div class="stat" id="kObsol">
-        <div class="label">Индекс технологического старения</div>
-        <div class="value mono" id="obsolIndex">—%</div>
-        <div class="small" id="obsolLabel">Устаревшие ОС/ПО и возраст парка.</div>
-      </div>
-      <div class="stat" id="kAI">
-        <div class="label">Готовность к ИИ / автоматизации</div>
-        <div class="value mono" id="aiIndex">—%</div>
-        <div class="small" id="aiLabel">Структура данных и источники.</div>
-      </div>
-    </div>
+  <div class="stat" id="kTech">
+    <div class="label">Индекс тех. зрелости</div>
+    <div class="value mono" id="techIndex">—%</div>
+    <div class="small">Готовность по данным/источникам.</div>
+  </div>
+
+  <div class="stat" id="kProc">
+    <div class="label">Индекс процессной зрелости</div>
+    <div class="value mono" id="procIndex">—%</div>
+    <div class="small">Предсказуемость внедрения.</div>
+  </div>
+
+  <div class="kpiGroupTitle">Внутренние индексы</div>
+
+  <div class="stat" id="kCrit">
+    <div class="label">Категория проекта</div>
+    <div class="value mono" id="critScore">—%</div>
+    <div class="small" id="critLabel">—</div>
+  </div>
+
+  <div class="stat" id="kFeas">
+    <div class="label">Индекс реализуемости требований к пилоту</div>
+    <div class="value mono" id="feasScore">—%</div>
+    <div class="small">Средний балл по «возможности» (раздел 4).</div>
+  </div>
+
+  <div class="stat" id="kProdFeas">
+    <div class="label">Индекс реализуемости требований к продукту</div>
+    <div class="value mono" id="prodFeasScore">—%</div>
+    <div class="small">Средний балл по «возможности» (раздел 6).</div>
+  </div>
+
+  <div class="stat" id="kPain">
+    <div class="label">Индекс экономического давления</div>
+    <div class="value mono" id="painIndex">—%</div>
+    <div class="small" id="painLabel">—</div>
+  </div>
+
+  <div class="stat" id="kProb">
+    <div class="label">Вероятность сделки</div>
+    <div class="value mono" id="probIndex">—%</div>
+    <div class="small" id="probLabel">—</div>
+  </div>
+</div>
   </header>
 
   <div class="grid">
@@ -734,12 +729,12 @@ body.no-kpi .kpiBar{display:none !important;}
           <thead>
             <tr>
               <th style="width:54px">№</th>
+              <th style="min-width:220px">Бизнес потребность</th>
               <th style="min-width:340px">Требование клиента</th>
               <th style="width:160px">Тип</th>
               <th style="width:140px">Обязат.</th>
               <th style="width:220px">Возможность</th>
               <th style="min-width:240px">Метрика проверки</th>
-              <th style="min-width:220px">Ответственный</th>
             </tr>
           </thead>
           <tbody id="reqTbody"></tbody>
@@ -766,6 +761,7 @@ body.no-kpi .kpiBar{display:none !important;}
           <thead>
             <tr>
               <th style="width:54px">№</th>
+              <th style="min-width:260px">Требования</th>
               <th style="min-width:260px">Сценарий проверки</th>
               <th style="min-width:260px">Ожидаемый результат</th>
               <th style="min-width:260px">Фактический результат</th>
@@ -777,6 +773,32 @@ body.no-kpi .kpiBar{display:none !important;}
           <tbody id="psiTbody"></tbody>
         </table>
       </div>
+      <div class="hr"></div>
+
+      <h2>6) Требования к продукту — реестр</h2>
+      <div class="small">Фиксируем требования к продукту (для roadmap/оценки). Индекс — по «возможности».</div>
+
+      <div class="btns" style="margin:10px 0 6px">
+        <button class="btn ghost" id="btnAddProdReq">+ Добавить требование</button>
+        <button class="btn ghost" id="btnClearProdReq">Очистить</button>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:54px">№</th>
+              <th style="min-width:260px">Бизнес требование</th>
+              <th style="min-width:340px">Функциональное требование</th>
+              <th style="width:160px">Тип</th>
+              <th style="width:140px">Обязат.</th>
+              <th style="width:220px">Возможность</th>
+            </tr>
+          </thead>
+          <tbody id="prodReqTbody"></tbody>
+        </table>
+      </div>
+
 
       
       <div id="projectRisksWrap">
@@ -1216,6 +1238,7 @@ function addReqRow(data){
   const tr=document.createElement("tr");
   tr.innerHTML = `
     <td class="right mono">${idx}</td>
+    <td><textarea class="req-owner" placeholder="Бизнес потребность / зачем это нужно?"></textarea></td>
     <td><textarea class="req-text" placeholder="Что именно должно быть выполнено/показано на пилоте?"></textarea></td>
     <td>
       <select class="req-type">
@@ -1227,7 +1250,6 @@ function addReqRow(data){
     </td>
     <td><select class="req-feas">${feasOptions}</select></td>
     <td><textarea class="req-metric" placeholder="Как проверяем? (метрика/отчет/скрин)"></textarea></td>
-    <td><input class="req-owner" placeholder="Кто отвечает?"></td>
   `;
   tb.appendChild(tr);
 
@@ -1247,12 +1269,61 @@ function addReqRow(data){
   recalc();
 }
 
+
+const PROD_FEAS_OPTIONS = [
+  { label: "—", score: null },
+  { label: "Полностью", score: 1.00 },
+  { label: "Частично", score: 0.60 },
+  { label: "Нет", score: 0.00 },
+  { label: "Хард код (Скоро)", score: 0.70 },
+  { label: "Хард код (не скоро)", score: 0.30 },
+  { label: "Требуется скрипт", score: 0.50 },
+];
+
+function addProdReqRow(data){
+  const tb=document.getElementById("prodReqTbody");
+  if(!tb) return;
+  const idx=tb.children.length+1;
+  const feasOptions = PROD_FEAS_OPTIONS.map(o=>`<option value="${o.label}">${o.label}</option>`).join("");
+  const tr=document.createElement("tr");
+  tr.innerHTML = `
+    <td class="right mono">${idx}</td>
+    <td><textarea class="prod-biz" placeholder="Зачем бизнесу? какую ценность даёт?"></textarea></td>
+    <td><textarea class="prod-func" placeholder="Что именно должно быть в продукте?"></textarea></td>
+    <td>
+      <select class="prod-type">
+        <option>Тех</option><option>ИБ</option><option>Бизнес</option><option>Интеграции</option><option>Отчеты</option>
+      </select>
+    </td>
+    <td>
+      <select class="prod-must"><option value="Да">Да</option><option value="Нет">Нет</option></select>
+    </td>
+    <td><select class="prod-feas">${feasOptions}</select></td>
+  `;
+  tb.appendChild(tr);
+
+  if(data){
+    tr.querySelector(".prod-biz").value = data.biz || data.owner || "";
+    tr.querySelector(".prod-func").value = data.func || data.text || "";
+    tr.querySelector(".prod-type").value = data.type || "Тех";
+    tr.querySelector(".prod-must").value = data.must || "Да";
+    tr.querySelector(".prod-feas").value = data.feas || "—";
+  }
+
+  tr.querySelectorAll("input,select,textarea").forEach(el=>{
+    el.addEventListener("input", debounce(recalc,120));
+    el.addEventListener("change", recalc);
+  });
+  recalc();
+}
+
 function addPsiRow(data){
   const tb=document.getElementById("psiTbody");
   const idx=tb.children.length+1;
   const tr=document.createElement("tr");
   tr.innerHTML = `
     <td class="right mono">${idx}</td>
+    <td><textarea class="psi-req" placeholder="Требование / что закрываем?"></textarea></td>
     <td><textarea class="psi-scn" placeholder="Что проверяем? (функция/сценарий)"></textarea></td>
     <td><textarea class="psi-exp" placeholder="Ожидаемый результат"></textarea></td>
     <td><textarea class="psi-act" placeholder="Фактический результат"></textarea></td>
@@ -1267,6 +1338,7 @@ function addPsiRow(data){
   tb.appendChild(tr);
 
   if(data){
+    tr.querySelector(".psi-req").value = data.req || "";
     tr.querySelector(".psi-scn").value = data.scn || "";
     tr.querySelector(".psi-exp").value = data.exp || "";
     tr.querySelector(".psi-act").value = data.act || "";
@@ -1598,6 +1670,22 @@ const riskIndex = (riskAnswered.length>0)
   document.getElementById("feasScore").textContent = isFinite(feasPct) ? `${feasPct}%` : "—%";
   paintStat("kFeas", isFinite(feasPct)?feasPct:NaN, true);
 
+  // Product requirements feasibility (section 6)
+  const prodReqRows=[...document.querySelectorAll("#prodReqTbody tr")];
+  const prodFeasVals=[];
+  prodReqRows.forEach(r=>{
+    const func=(r.querySelector(".prod-func")?.value||"").trim();
+    const biz=(r.querySelector(".prod-biz")?.value||"").trim();
+    if(!func && !biz) return;
+    const feas = r.querySelector(".prod-feas")?.value || "—";
+    const opt = PROD_FEAS_OPTIONS.find(o=>o.label===feas);
+    if(opt && typeof opt.score === "number") prodFeasVals.push(opt.score);
+  });
+  const prodFeasPct = prodFeasVals.length ? Math.round(avg(prodFeasVals)*100) : NaN;
+  const prodEl=document.getElementById("prodFeasScore");
+  if(prodEl) prodEl.textContent = isFinite(prodFeasPct) ? `${prodFeasPct}%` : "—%";
+  if(document.getElementById("kProdFeas")) paintStat("kProdFeas", isFinite(prodFeasPct)?prodFeasPct:NaN, true);
+
   // ----- Criticality & client summary -----
   const maturityAvg = Math.round((techIndex + procIndex) / 2);
   const crit = computeCriticality(lossTotal, riskIndex, maturityAvg);
@@ -1782,7 +1870,7 @@ const riskIndex = (riskAnswered.length>0)
     psi2 = Math.round(clamp(psi2, 0, 100));
   } else {
     // fallback: if everything missing, at least anchor PSI to visible core indices
-    const core = [techIndex, procIndex, ai].map(Number).filter(Number.isFinite);
+    const core = [techIndex, procIndex].map(Number).filter(Number.isFinite);
     if(core.length) psi2 = Math.round(core.reduce((a,b)=>a+b,0)/core.length);
   }
   document.getElementById("psi2Score").textContent = isFinite(psi2) ? `${psi2}%` : "—%";
@@ -1829,7 +1917,15 @@ function collect(){
       metric:r.querySelector(".req-metric")?.value||"",
       owner:r.querySelector(".req-owner")?.value||"",
     })),
+    productRequirements:[...document.querySelectorAll("#prodReqTbody tr")].map(r=>({
+      biz:r.querySelector(".prod-biz")?.value||"",
+      func:r.querySelector(".prod-func")?.value||"",
+      type:r.querySelector(".prod-type")?.value||"Тех",
+      must:r.querySelector(".prod-must")?.value||"Да",
+      feas:r.querySelector(".prod-feas")?.value||"—",
+    })),
     psi:[...document.querySelectorAll("#psiTbody tr")].map(r=>({
+      req:r.querySelector(".psi-req")?.value||"",
       scn:r.querySelector(".psi-scn")?.value||"",
       exp:r.querySelector(".psi-exp")?.value||"",
       act:r.querySelector(".psi-act")?.value||"",
@@ -1859,6 +1955,7 @@ function collect(){
       risk:(document.getElementById("riskIndex")?.textContent||"").trim(),
       coi:(document.getElementById("coiTotal")?.textContent||"").trim(),
       feas:(document.getElementById("feasScore")?.textContent||"").trim(),
+      prodFeas:(document.getElementById("prodFeasScore")?.textContent||"").trim(),
       pain:(document.getElementById("painIndex")?.textContent||"").trim(),
       ready:(document.getElementById("readyIndex")?.textContent||"").trim(),
       prob:(document.getElementById("probIndex")?.textContent||"").trim(),
@@ -1953,6 +2050,9 @@ function apply(data){
   // requirements
   document.getElementById("reqTbody").innerHTML="";
   (data.requirements||[]).forEach(r=>addReqRow(r));
+  // product requirements
+  const prTb=document.getElementById("prodReqTbody");
+  if(prTb){ prTb.innerHTML=""; (data.productRequirements||[]).forEach(r=>addProdReqRow(r)); }
   // psi
   document.getElementById("psiTbody").innerHTML="";
   (data.psi||[]).forEach(r=>addPsiRow(r));
@@ -1978,9 +2078,9 @@ function seedReq(){
 }
 function seedPsi(){
   const presets=[
-    {scn:"Проверка обнаружения устройств в пилотной зоне", exp:"Список устройств соответствует периметру, ≥95% покрытие", act:"", ok:"", acc:"", note:""},
-    {scn:"Проверка нормализации и распознавания ПО", exp:"Нераспознанное ПО ≤5% и выделено отдельным списком", act:"", ok:"", acc:"", note:""},
-    {scn:"Проверка отчета по запрещенному ПО", exp:"Сформирован отчет/список по запрещенным приложениям", act:"", ok:"", acc:"", note:""},
+    {req:"", scn:"Проверка обнаружения устройств в пилотной зоне", exp:"Список устройств соответствует периметру, ≥95% покрытие", act:"", ok:"", acc:"", note:""},
+    {req:"", scn:"Проверка нормализации и распознавания ПО", exp:"Нераспознанное ПО ≤5% и выделено отдельным списком", act:"", ok:"", acc:"", note:""},
+    {req:"", scn:"Проверка отчета по запрещенному ПО", exp:"Сформирован отчет/список по запрещенным приложениям", act:"", ok:"", acc:"", note:""},
   ];
   presets.forEach(p=>addPsiRow(p));
 }
@@ -2262,8 +2362,12 @@ document.getElementById("btnHideCLevel").addEventListener("click", ()=>{
 });
 
 document.getElementById("btnAddReq").addEventListener("click", ()=>addReqRow());
+if(document.getElementById("btnAddProdReq")) document.getElementById("btnAddProdReq").addEventListener("click", ()=>addProdReqRow());
 document.getElementById("btnClearReq").addEventListener("click", ()=>{
   if(confirm("Очистить все требования?")){ document.getElementById("reqTbody").innerHTML=""; recalc(); }
+});
+if(document.getElementById("btnClearProdReq")) document.getElementById("btnClearProdReq").addEventListener("click", ()=>{
+  if(confirm("Очистить все требования к продукту?")){ document.getElementById("prodReqTbody").innerHTML=""; recalc(); }
 });
 document.getElementById("btnAddPsi").addEventListener("click", ()=>addPsiRow());
 document.getElementById("btnClearPsi").addEventListener("click", ()=>{
@@ -2536,6 +2640,14 @@ const KPI_META = {
         <li><b>80–100%</b>: можно брать широкий список требований и делать демо‑отчёты.</li>
       </ul>`
   },
+      kProdFeas: {
+        title:"Индекс реализуемости требований к продукту",
+        what:"Оценка того, насколько требования к продукту реализуемы в текущей версии/планах.",
+        how:"Среднее значение по колонке «Возможность» в разделе 6, в процентах.",
+        data:"Основано на реестре требований к продукту (раздел 6).",
+        impact:"Влияет на реалистичность ожиданий клиента и на планирование roadmap.",
+        do:"Заполните раздел 6. Если индекс низкий — фиксируйте ожидания, план внедрения и roadmap, или уточняйте требования."
+      },
   kPain: {
     title: "Индекс экономического давления",
     sub: "Насколько остро бизнесу нужно снизить затраты/риски сейчас.",
