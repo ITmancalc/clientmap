@@ -354,7 +354,9 @@
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script>
-    const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxbo5mbZWvgC_J3Ti8Hjuy4eQGnPrAnJ40D8acEluJU_VlZKB1TjxlyrcJEvzS314coOQ/exec";
+    const WEBAPP_URL = (window.GS_WEBAPP_URL || "").trim();
+    if(!WEBAPP_URL){ console.warn("GS_WEBAPP_URL is empty. Check config.js"); }
+
 console.log("✅ Using Google Sheets WebApp URL:", WEBAPP_URL);
 
     function jsonp(url, timeoutMs=12000){
