@@ -1490,6 +1490,7 @@ document.addEventListener("input",(e)=>{
 /* ====================================================================== */
 
 function recalc(){
+  console.log("recalc() clicked", new Date().toISOString());
   try{ applyQuickSynthetics(); }catch(e){}
 
 
@@ -1985,7 +1986,7 @@ function seedPsi(){
 
 document.getElementById("btnRecalc").addEventListener("click", recalc);
 // ===== v7: Excel export + Google Sheets sync =====
-const GOOGLE_SHEETS_WEBAPP_URL = (window.GS_WEBAPP_URL || 'https://script.google.com/macros/s/AKfycbxbo5mbZWvgC_J3Ti8Hjuy4eQGnPrAnJ40D8acEluJU_VlZKB1TjxlyrcJEvzS314coOQ/exec');
+const GOOGLE_SHEETS_WEBAPP_URL = (window.GS_WEBAPP_URL || "").trim();
 console.log("✅ Using Google Sheets WebApp URL:", GOOGLE_SHEETS_WEBAPP_URL);
 // Если у тебя другой URL — просто поменяй строку выше.
 
@@ -2129,6 +2130,7 @@ async function syncToGoogleSheets(reason){
       const payload = flattenForSheets(payloadRaw);
 
       const st = document.getElementById("gsyncStatus");
+      console.log("GS sync target:", GOOGLE_SHEETS_WEBAPP_URL);
       if(st){
         st.style.display = "block";
         st.style.color = "#0ea5e9";
@@ -2136,12 +2138,13 @@ async function syncToGoogleSheets(reason){
       }
 
       const jsonStr = JSON.stringify(payload);
+      const postBody = "action=save&payload=" + encodeURIComponent(jsonStr);
       let sent = false;
 
       // 1) sendBeacon (лучший вариант: без CORS, без preflight)
       try{
         if(navigator && typeof navigator.sendBeacon === "function"){
-          const blob = new Blob([jsonStr], { type:"text/plain;charset=UTF-8" }); // text/plain => no preflight
+          const blob = new Blob([postBody], { type:"text/plain;charset=UTF-8" }); // text/plain => no preflight
           sent = navigator.sendBeacon(GOOGLE_SHEETS_WEBAPP_URL, blob);
         }
       }catch(_e){ sent = false; }
@@ -2153,7 +2156,7 @@ async function syncToGoogleSheets(reason){
             method:"POST",
             mode:"no-cors",
             headers:{ "Content-Type":"text/plain;charset=UTF-8" },
-            body: jsonStr
+            body: postBody
           });
           sent = true;
         }catch(_e2){ sent = false; }
@@ -2169,6 +2172,7 @@ async function syncToGoogleSheets(reason){
     }catch(err){
       console.error("gsync error", err);
       const st = document.getElementById("gsyncStatus");
+      console.log("GS sync target:", GOOGLE_SHEETS_WEBAPP_URL);
       if(st){
         st.style.display = "block";
         st.style.color = "#b91c1c";

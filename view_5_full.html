@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <script src="config.js"></script>
+  <script src="../config.js"></script>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Карта тестирования + ПСИ — Инферит ИТМен</title>
@@ -1595,6 +1595,7 @@ function paintIf(id, pct, isPct){
 }
 
 function recalc(){
+  console.log("recalc() clicked", new Date().toISOString());
   try{ applyQuickSynthetics(); }catch(e){}
 
 
@@ -2123,7 +2124,7 @@ function seedPsi(){
 
 document.getElementById("btnRecalc").addEventListener("click", recalc);
 // ===== v7: Excel export + Google Sheets sync =====
-const GOOGLE_SHEETS_WEBAPP_URL = (window.GS_WEBAPP_URL || 'https://script.google.com/macros/s/AKfycbxbo5mbZWvgC_J3Ti8Hjuy4eQGnPrAnJ40D8acEluJU_VlZKB1TjxlyrcJEvzS314coOQ/exec');
+const GOOGLE_SHEETS_WEBAPP_URL = (window.GS_WEBAPP_URL || "").trim();
 console.log("✅ Using Google Sheets WebApp URL:", GOOGLE_SHEETS_WEBAPP_URL);
 // Если у тебя другой URL — просто поменяй строку выше.
 
@@ -2267,6 +2268,7 @@ async function syncToGoogleSheets(reason){
       const payload = flattenForSheets(payloadRaw);
 
       const st = document.getElementById("gsyncStatus");
+      console.log("GS sync target:", GOOGLE_SHEETS_WEBAPP_URL);
       if(st){
         st.style.display = "block";
         st.style.color = "#0ea5e9";
@@ -2274,12 +2276,13 @@ async function syncToGoogleSheets(reason){
       }
 
       const jsonStr = JSON.stringify(payload);
+      const postBody = "action=save&payload=" + encodeURIComponent(jsonStr);
       let sent = false;
 
       // 1) sendBeacon (лучший вариант: без CORS, без preflight)
       try{
         if(navigator && typeof navigator.sendBeacon === "function"){
-          const blob = new Blob([jsonStr], { type:"text/plain;charset=UTF-8" }); // text/plain => no preflight
+          const blob = new Blob([postBody], { type:"text/plain;charset=UTF-8" }); // text/plain => no preflight
           sent = navigator.sendBeacon(GOOGLE_SHEETS_WEBAPP_URL, blob);
         }
       }catch(_e){ sent = false; }
@@ -2291,7 +2294,7 @@ async function syncToGoogleSheets(reason){
             method:"POST",
             mode:"no-cors",
             headers:{ "Content-Type":"text/plain;charset=UTF-8" },
-            body: jsonStr
+            body: postBody
           });
           sent = true;
         }catch(_e2){ sent = false; }
@@ -2307,6 +2310,7 @@ async function syncToGoogleSheets(reason){
     }catch(err){
       console.error("gsync error", err);
       const st = document.getElementById("gsyncStatus");
+      console.log("GS sync target:", GOOGLE_SHEETS_WEBAPP_URL);
       if(st){
         st.style.display = "block";
         st.style.color = "#b91c1c";
@@ -2319,7 +2323,11 @@ async function syncToGoogleSheets(reason){
 document.getElementById("btnExportXlsx")?.addEventListener("click", exportExcel);
 
 // Пересчитать = пересчитать + синхронизировать в Google Sheets
-document.getElementById("btnRecalc").addEventListener("click", ()=>syncToGoogleSheets("recalc"));
+document.getElementById("btnRecalc").addEventListener("click", ()=>{
+  try{ recalc(); }catch(e){ console.warn("recalc() failed", e); }
+  // Save snapshot after recalculation
+  try{ syncToGoogleSheets("recalc"); }catch(e){ console.warn("syncToGoogleSheets failed", e); }
+});
 
 document.getElementById("btnPrint").addEventListener("click", ()=>window.print());
 
@@ -3249,6 +3257,19 @@ function buildSheetPayloadExact(){
   // Also include full JSON snapshot if someone adds "payload" column later
   out.payload = JSON.stringify(out);
 
+  // === Dashboard aliases (so analytics can read consistent keys) ===
+  // Some dashboard widgets expect psi/ready/probability fields.
+  const psi2Num = parseFloat(String(out.psi2Score||"").replace("%","").trim());
+  const readyNum = parseFloat(String(out.readyIndex||"").replace("%","").trim());
+  const probNum = parseFloat(String(out.probIndex||"").replace("%","").trim());
+  if(isFinite(psi2Num)) out.psi = psi2Num;
+  if(isFinite(readyNum)) out.ready = readyNum;
+  if(isFinite(probNum)) { out.probability = probNum; out.prob = probNum; }
+  // Synthetic analytics aliases
+  const benchNum = parseInt(String(out.benchCount||"0"),10);
+  if(isFinite(benchNum)) out.synthetic_count = benchNum;
+  out.total_fields = SHEET_KEYS.length;
+
   // Return only keys the sheet expects (safe)
   const trimmed = {};
   SHEET_KEYS.forEach(k=>{ trimmed[k]= (out[k]===undefined? "": out[k]); });
@@ -3257,13 +3278,16 @@ function buildSheetPayloadExact(){
 
 // Override sync to Sheets to use exact payload
 async function syncToGoogleSheets(){
-  const url = (typeof GOOGLE_SHEETS_WEBAPP_URL!=="undefined" && GOOGLE_SHEETS_WEBAPP_URL) ? GOOGLE_SHEETS_WEBAPP_URL : null;
-  if(!url){
+  // IMPORTANT: Apps Script routes actions by query parameter.
+  // If we POST raw JSON to /exec without ?action=save, server will default to stats.
+  const base = (typeof GOOGLE_SHEETS_WEBAPP_URL!=="undefined" && GOOGLE_SHEETS_WEBAPP_URL) ? String(GOOGLE_SHEETS_WEBAPP_URL).trim() : "";
+  if(!base){
     console.warn("Google Sheets URL is not set");
     return;
   }
+  const url = base + (base.includes("?") ? "&" : "?") + "action=save";
   const payload = buildSheetPayloadExact();
-  const body = JSON.stringify(payload);
+  const body = "action=save&payload=" + encodeURIComponent(JSON.stringify(payload));
 
   // 1) Beacon (no CORS / no preflight)
   try{
@@ -3275,7 +3299,7 @@ async function syncToGoogleSheets(){
 
   // 2) Fetch no-cors fallback
   try{
-    await fetch(url, {method:"POST", mode:"no-cors", body, headers: {"Content-Type":"text/plain;charset=utf-8"}});
+    await fetch(url, {method:"POST", mode:"no-cors", body, keepalive:true, headers: {"Content-Type":"text/plain;charset=utf-8"}});
     console.log("✅ Sheets sync sent (fetch no-cors)");
   }catch(e){
     console.error("❌ Sheets sync failed", e);
@@ -3356,10 +3380,10 @@ async function gsSearch(q){
     return await jsonp(url); // JSONP to bypass CORS for local HTML
   }
 
-  async function gsGetByRow(row){
+  async function gsGetByCompany(company){
     const base = (typeof GOOGLE_SHEETS_WEBAPP_URL === "string" && GOOGLE_SHEETS_WEBAPP_URL) ? GOOGLE_SHEETS_WEBAPP_URL : "";
     if(!base) throw new Error("GOOGLE_SHEETS_WEBAPP_URL is not set");
-    const url = `${base}?action=get&row=${encodeURIComponent(row)}`;
+    const url = `${base}?action=get&company=${encodeURIComponent(company)}`;
     return await jsonp(url); // JSONP to bypass CORS for local HTML
   }
 
@@ -3543,123 +3567,33 @@ async function gsSearch(q){
 
         dd.innerHTML = "";
 
-// Group duplicates by company, keep the latest as default, allow expanding "all runs"
-const by = new Map();
+// Simple suggestions (company list). When selected → load last saved snapshot by company.
 items.forEach(it=>{
   const name = String(it.company || "").trim();
   if(!name) return;
-  const key = name.toLowerCase().replace(/ё/g,"е").replace(/\s+/g," ").trim();
-  if(!by.has(key)) by.set(key, { company:name, list:[] });
-  by.get(key).list.push(it);
-});
-
-// sort within each company by timestamp desc (fallback by row desc)
-const groups = Array.from(by.values()).map(g=>{
-  g.list.sort((a,b)=>{
-    const ta = Date.parse(a.timestamp || "") || 0;
-    const tb = Date.parse(b.timestamp || "") || 0;
-    if(tb !== ta) return tb - ta;
-    return (Number(b.row)||0) - (Number(a.row)||0);
-  });
-  return g;
-});
-
-// sort companies by latest timestamp desc
-groups.sort((a,b)=>{
-  const ta = Date.parse((a.list[0] && a.list[0].timestamp) || "") || 0;
-  const tb = Date.parse((b.list[0] && b.list[0].timestamp) || "") || 0;
-  return tb - ta;
-});
-
-groups.forEach(g=>{
-  const latest = g.list[0];
-  const extra = Math.max(0, g.list.length - 1);
-
   const row = document.createElement("div");
   row.className = "companySuggestItem";
-
-  const badge = extra > 0
-    ? `<span style="display:inline-flex;align-items:center;gap:6px;padding:4px 8px;border-radius:999px;background:#eff6ff;border:1px solid #bfdbfe;color:#1d4ed8;font-weight:900;font-size:12px;white-space:nowrap">+${extra}</span>`
-    : ``;
-
-  const toggle = extra > 0
-    ? `<button type="button" data-action="toggleRuns" style="margin-left:10px;background:transparent;border:none;color:#2563eb;font-weight:900;cursor:pointer;padding:0">Все записи</button>`
-    : ``;
-
-  const runsHtml = extra > 0
-    ? `<div class="companySuggestRuns" style="display:none;margin-top:8px;border-top:1px dashed #e5e7eb;padding-top:8px">
-        ${g.list.map((it,idx)=>`
-          <div data-action="pickRun" data-row="${esc(String(it.row||""))}" style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 8px;border-radius:10px;cursor:pointer;background:${idx===0?"#f1f5f9":"transparent"}">
-            <div style="font-weight:800;color:#0f172a;font-size:12px">${esc(String(it.company||""))}</div>
-            <div style="color:#64748b;font-size:12px">${it.timestamp ? formatMsk(it.timestamp).replace("Обновлено: ","") : ""}</div>
-          </div>
-        `).join("")}
-      </div>`
-    : ``;
-
-  row.innerHTML = `
-    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
-      <div class="companySuggestTitle">${esc(g.company)}</div>
-      ${badge}
-    </div>
-    <div class="companySuggestMeta">
-      ${latest && latest.timestamp ? formatMsk(latest.timestamp) : ""}
-      ${toggle}
-    </div>
-    ${runsHtml}
-  `;
-
+  row.innerHTML = `<div class="companySuggestTitle">${esc(name)}</div>`;
   row.addEventListener("mousedown", async (ev)=>{
-    const t = ev.target;
-    if(t && t.getAttribute && t.getAttribute("data-action")==="toggleRuns"){
-      ev.preventDefault();
-      ev.stopPropagation();
-      const runs = row.querySelector(".companySuggestRuns");
-      if(runs){
-        const isOpen = runs.style.display !== "none";
-        runs.style.display = isOpen ? "none" : "block";
-      }
-      return;
-    }
-
-    if(t && t.getAttribute && t.getAttribute("data-action")==="pickRun"){
-      ev.preventDefault();
-      ev.stopPropagation();
-      hide();
-      const r = t.getAttribute("data-row");
-      if(!r) return;
-      try{
-        const got = await gsGetByRow(r);
-        if(got && got.ok && got.payload){
-          input.value = (got.payload.company || g.company || input.value);
-          applyPayload(got.payload);
-        }
-      }catch(e){
-        console.error("Reverse sync load failed:", e);
-      }
-      return;
-    }
-
-    // Default click: load latest
     ev.preventDefault();
     hide();
-    input.value = g.company || input.value;
-    if(!latest || !latest.row) return;
+    input.value = name;
     try{
-      const got = await gsGetByRow(latest.row);
-      if(got && got.ok && got.payload){
-        applyPayload(got.payload);
+      const got = await gsGetByCompany(name);
+      if(got && got.ok && got.item){
+        applyPayload(got.item);
+        try{ recalc(); }catch(_e){}
       }
     }catch(e){
       console.error("Reverse sync load failed:", e);
     }
   });
-
   dd.appendChild(row);
 });
 
 show();
-      }catch(e){
+
+}catch(e){
         // On error just hide
         hide();
       }
