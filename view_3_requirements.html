@@ -3327,12 +3327,44 @@ async function gsSearch(q){
     return await jsonp(url); // JSONP to bypass CORS for local HTML
   }
 
+
+  // Build a fast lookup: normalizedId -> real element id
+  function normalizeKey(k){
+    return String(k||"").trim().toLowerCase().replace(/[^a-z0-9а-яё]+/gi,"");
+  }
+  const __EL_ID_MAP = (() => {
+    const m = new Map();
+    document.querySelectorAll("[id]").forEach(el=>{
+      const id = el.id;
+      if(!id) return;
+      m.set(normalizeKey(id), id);
+    });
+    return m;
+  })();
+
+  function findElementByKey(key){
+    if(!key) return null;
+    // 1) exact
+    let el = document.getElementById(key);
+    if(el) return el;
+    const k1 = String(key).trim();
+    const k2 = k1.toLowerCase();
+    // 2) lower
+    el = document.getElementById(k2);
+    if(el) return el;
+    // 3) normalized match (strip spaces/underscores/etc)
+    const norm = normalizeKey(k1);
+    const realId = __EL_ID_MAP.get(norm);
+    if(realId) return document.getElementById(realId);
+    return null;
+  }
+
   function applyPayload(payload){
     if(!payload || typeof payload !== "object") return;
 
     // 1) basic fields by id
     Object.entries(payload).forEach(([id, val]) => {
-      const el = document.getElementById(id);
+      const el = findElementByKey(id);
       if(!el) return;
 
       // skip if element is file input
