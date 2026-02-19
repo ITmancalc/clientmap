@@ -449,6 +449,11 @@ body.no-kpi .kpiBar{display:none !important;}
           </select>
         </label>
       </div>
+      <div class="row" style="margin-top:6px">
+        <div id="companyMeta" class="hint" style="flex:1;color:#6b7280;font-size:12px">—</div>
+        <button id="btnCompanyAll" class="btn ghost" style="display:none">Все записи</button>
+      </div>
+</div>
       <div class="row" style="margin-top:10px">
         <label>Sales менеджер (ФИО)
           <input id="sales_manager" placeholder="Имя Фамилия">
@@ -669,6 +674,11 @@ body.no-kpi .kpiBar{display:none !important;}
       <div data-mode="deep">
 <h3 style="margin:14px 0 6px">Железо и простои (для CoI)</h3>
       <div class="small">Дополняет Cost of Inaction: простои и инвестиции в обновление железа.</div>
+      <div class="row" style="margin-top:6px">
+        <div id="companyMeta" class="hint" style="flex:1;color:#6b7280;font-size:12px">—</div>
+        <button id="btnCompanyAll" class="btn ghost" style="display:none">Все записи</button>
+      </div>
+</div>
       <div class="row" style="margin-top:10px">
         <label>Бюджет на железо (₽/год) <span class="small" style="opacity:.8">(оценочно)</span>
           <input id="hwBudget" type="number" min="0" step="10000" value="0">
@@ -3258,6 +3268,16 @@ async function gsSearch(q){
 
   function applyPayload(payload){
     if(!payload || typeof payload !== "object") return;
+    try{
+      const p = payload;
+      if(p.sales_manager==null && p.salesManager!=null) p.sales_manager = p.salesManager;
+      if(p.sales_manager==null && p.sales!=null) p.sales_manager = p.sales;
+      if(p.presale_manager==null && p.preSaleManager!=null) p.presale_manager = p.preSaleManager;
+      if(p.presale_manager==null && p.presaleManager!=null) p.presale_manager = p.presaleManager;
+      if(p.presale_manager==null && p.presale!=null) p.presale_manager = p.presale;
+      if(p.timestamp==null && p.Timestamp!=null) p.timestamp = p.Timestamp;
+      if(p.run_id==null && p.runId!=null) p.run_id = p.runId;
+    }catch(e){}
 
     // 1) basic fields by id
     Object.entries(payload).forEach(([id, val]) => {
@@ -3740,6 +3760,48 @@ function syncToGoogleSheets(){
 }
 /* === end override === */
 
+
+  function openCompanyVersionsModal(company, items){
+    try{
+      const modal = document.getElementById('kpiModal');
+      const body = document.getElementById('kpiModalBody');
+      const title = document.getElementById('kpiModalTitle');
+      if(!modal || !body || !title){
+        const msg = items.map((it,i)=>`${i+1}) ${(it.timestamp||it.Timestamp||'')}`).join('\n');
+        alert(`Все записи для ${company}:\n`+msg);
+        return;
+      }
+      title.textContent = `Все записи — ${company}`;
+      const rows = items.slice().sort((a,b)=> String(b.timestamp||b.Timestamp||'').localeCompare(String(a.timestamp||a.Timestamp||'')));
+      body.innerHTML = `
+        <div style="display:flex;flex-direction:column;gap:8px">
+          ${rows.map((it,idx)=>{
+            const ts = it.timestamp||it.Timestamp||'';
+            const tsTxt = ts ? new Date(ts).toLocaleString('ru-RU') : '—';
+            const rid = it.run_id || it.runId || '';
+            return `<button class="btn ghost" data-idx="${idx}" style="text-align:left">
+              <div style="font-weight:600">${tsTxt}</div>
+              <div style="font-size:12px;color:#6b7280">run_id: ${rid || '—'}</div>
+            </button>`;
+          }).join('')}
+        </div>`;
+      body.querySelectorAll('button[data-idx]').forEach(btn=>{
+        btn.addEventListener('click', ()=>{
+          const it = rows[Number(btn.getAttribute('data-idx'))];
+          applyPayload(it);
+          const metaEl = document.getElementById('companyMeta');
+          if(metaEl){
+            const ts = it.timestamp||it.Timestamp||'';
+            metaEl.textContent = `Последнее заполнение: ${ts ? new Date(ts).toLocaleString('ru-RU') : '—'} · версий: ${rows.length}`;
+          }
+          closeKpiModal();
+        });
+      });
+      openKpiModal();
+    }catch(e){
+      console.warn('openCompanyVersionsModal failed', e);
+    }
+  }
 </script>
 
 </body>
