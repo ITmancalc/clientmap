@@ -1919,6 +1919,11 @@ const riskIndex = (riskAnswered.length>0)
   if(sumW>0){
     psi2 = valid.reduce((a,p)=>a + p.v*p.w,0) / sumW;
     psi2 = Math.round(clamp(psi2, 0, 100));
+
+// Extra columns added later (kept out of the huge literal to avoid breaking older templates)
+SHEET_KEYS.push("sales_manager","presale_manager");
+for(let i=1;i<=20;i++){ const n=String(i).padStart(2,"0"); SHEET_KEYS.push(`psi__req`); }
+for(let i=1;i<=30;i++){ const n=String(i).padStart(2,"0"); SHEET_KEYS.push(`prod__biz`,`prod__func`,`prod__type`,`prod__must`,`prod__feas`); }
   } else {
     // fallback: if everything missing, at least anchor PSI to visible core indices
     const core = [techIndex, procIndex].map(Number).filter(Number.isFinite);
@@ -3232,12 +3237,27 @@ function buildSheetPayloadExact(){
   for(let i=0;i<20;i++){
     const idx=i+1;
     const r=psiRows[i];
-    out[`psi_${String(idx).padStart(2,"0")}_scn`]  = r ? _cellVal(r.cells[1]) : "";
-    out[`psi_${String(idx).padStart(2,"0")}_exp`]  = r ? _cellVal(r.cells[2]) : "";
-    out[`psi_${String(idx).padStart(2,"0")}_act`]  = r ? _cellVal(r.cells[3]) : "";
-    out[`psi_${String(idx).padStart(2,"0")}_ok`]   = r ? _cellVal(r.cells[4]) : "";
-    out[`psi_${String(idx).padStart(2,"0")}_acc`]  = r ? _cellVal(r.cells[5]) : "";
-    out[`psi_${String(idx).padStart(2,"0")}_note`] = r ? _cellVal(r.cells[6]) : "";
+    const n = String(idx).padStart(2,"0");
+    out["psi_"+n+"_req"]  = r ? _cellVal(r.cells[0]) : "";
+    out["psi_"+n+"_scn"]  = r ? _cellVal(r.cells[1]) : "";
+    out["psi_"+n+"_exp"]  = r ? _cellVal(r.cells[2]) : "";
+    out["psi_"+n+"_act"]  = r ? _cellVal(r.cells[3]) : "";
+    out["psi_"+n+"_ok"]   = r ? _cellVal(r.cells[4]) : "";
+    out["psi_"+n+"_acc"]  = r ? _cellVal(r.cells[5]) : "";
+    out["psi_"+n+"_note"] = r ? _cellVal(r.cells[6]) : "";
+  }
+
+  // Product requirements (up to 30)
+  const prodRows = Array.from(document.querySelectorAll("#prodReqTbody tr"));
+  for(let i=0;i<30;i++){
+    const idx=i+1;
+    const r=prodRows[i];
+    const n = String(idx).padStart(2,"0");
+    out["prod_"+n+"_biz"]  = r ? _cellVal(r.cells[0]) : "";
+    out["prod_"+n+"_func"] = r ? _cellVal(r.cells[1]) : "";
+    out["prod_"+n+"_type"] = r ? _cellVal(r.cells[2]) : "";
+    out["prod_"+n+"_must"] = r ? _cellVal(r.cells[3]) : "";
+    out["prod_"+n+"_feas"] = r ? _cellVal(r.cells[4]) : "";
   }
 
   // Project risk table (up to 20)
@@ -3419,6 +3439,81 @@ async function gsSearch(q){
     return null;
   }
 
+  // Rebuild table sections from flat sheet columns when loading a company.
+  // Sheets rows are flat (req_01_text, psi_01_scn, prod_01_biz, ...), while the UI expects arrays.
+  function rebuildTablesFromFlat_(data){
+    if(!data || typeof data !== "object") return;
+    const pick = (k) => {
+      if (data[k] !== undefined) return data[k];
+      const lk = String(k).toLowerCase();
+      if (data[lk] !== undefined) return data[lk];
+      return "";
+    };
+
+    const reqTbody = document.getElementById("reqTbody");
+    if(reqTbody){
+      reqTbody.innerHTML = "";
+      const rows = [];
+      for(let i=1;i<=20;i++){
+        const n = String(i).padStart(2,"0");
+        const row = {
+          owner: pick(`req_${n}_owner`),
+          text: pick(`req_${n}_text`),
+          type: pick(`req_${n}_type`),
+          must: pick(`req_${n}_must`),
+          feas: pick(`req_${n}_feas`),
+          metric: pick(`req_${n}_metric`),
+        };
+        const hasAny = Object.values(row).some(v=>String(v??"").trim()!=="");
+        if(hasAny) rows.push(row);
+      }
+      if(rows.length===0) rows.push({});
+      rows.forEach(r=>addReqRow(r));
+    }
+
+    const psiTbody = document.getElementById("psiTbody");
+    if(psiTbody){
+      psiTbody.innerHTML = "";
+      const rows = [];
+      for(let i=1;i<=20;i++){
+        const n = String(i).padStart(2,"0");
+        const row = {
+          req: pick(`psi_${n}_req`),
+          scn: pick(`psi_${n}_scn`),
+          exp: pick(`psi_${n}_exp`),
+          act: pick(`psi_${n}_act`),
+          ok: pick(`psi_${n}_ok`),
+          acc: pick(`psi_${n}_acc`),
+          note: pick(`psi_${n}_note`),
+        };
+        const hasAny = Object.values(row).some(v=>String(v??"").trim()!=="");
+        if(hasAny) rows.push(row);
+      }
+      if(rows.length===0) rows.push({});
+      rows.forEach(r=>addPsiRow(r));
+    }
+
+    const prodTbody = document.getElementById("prodReqTbody");
+    if(prodTbody){
+      prodTbody.innerHTML = "";
+      const rows = [];
+      for(let i=1;i<=30;i++){
+        const n = String(i).padStart(2,"0");
+        const row = {
+          biz: pick(`prod_${n}_biz`),
+          func: pick(`prod_${n}_func`),
+          type: pick(`prod_${n}_type`),
+          must: pick(`prod_${n}_must`),
+          feas: pick(`prod_${n}_feas`),
+        };
+        const hasAny = Object.values(row).some(v=>String(v??"").trim()!=="");
+        if(hasAny) rows.push(row);
+      }
+      if(rows.length===0) rows.push({});
+      rows.forEach(r=>addProdReqRow(r));
+    }
+  }
+
   function applyPayload(payload){
     if(!payload || typeof payload !== "object") return;
     // normalize legacy/alt keys coming from Sheets / Apps Script
@@ -3478,7 +3573,10 @@ async function gsSearch(q){
       }
     }catch(e){}
 
-    // 3) kick recalculation (if button exists)
+    // 3) rebuild tables from flat sheet columns (requirements/PSI/product requirements)
+    try{ rebuildTablesFromFlat_(payload); }catch(e){ console.warn("rebuildTablesFromFlat_ failed", e); }
+
+    // 4) kick recalculation (if button exists)
     const btn = document.getElementById("btnRecalc");
     if(btn) btn.click();
     // 3) maturity tables (tech/proc) and risk table are stored in Sheets as tech_01_score etc.
