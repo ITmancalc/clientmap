@@ -3,8 +3,8 @@
 // IMPORTANT:
 // Put your *current* Apps Script WebApp /exec URL here after each deployment.
 // Example:
-// window.GS_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbwbrfWknpKxNhMLSvadmOYImOPTPwOQVUYbZ1rdw359e4aq1srw7MRDlHEzfkLiQS_Jyg/exec";
-window.GS_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbwbrfWknpKxNhMLSvadmOYImOPTPwOQVUYbZ1rdw359e4aq1srw7MRDlHEzfkLiQS_Jyg/exec";
+// window.GS_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxko-0G_pLtmYydh8BMhiKd_0AfT-Tr_Wyy5Ph0yz_DOSDCrcIPiCE3bsuAt37qGfFICg/exec";
+window.GS_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxko-0G_pLtmYydh8BMhiKd_0AfT-Tr_Wyy5Ph0yz_DOSDCrcIPiCE3bsuAt37qGfFICg/exec";
 
 // Backward-compatible alias used by older pages
 window.GOOGLE_SHEETS_WEBAPP_URL = window.GS_WEBAPP_URL;
