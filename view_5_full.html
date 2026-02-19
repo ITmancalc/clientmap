@@ -915,6 +915,7 @@ const FEAS_OPTIONS = [
   // Backward-compat: older sheets stored just "Нет"
   { label: "Нет", score: 0.00 },
   { label: "Нет возможности", score: 0.00 },
+  { label: "Нет возможности", score: 0.00 },
   // Backward-compat casing variants
   { label: "Хард код (скоро)", score: 0.70 },
   { label: "Хард код (Скоро)", score: 0.70 },
@@ -1307,6 +1308,7 @@ const PROD_FEAS_OPTIONS = [
   { label: "Полностью", score: 1.00 },
   { label: "Частично", score: 0.60 },
   { label: "Нет", score: 0.00 },
+  { label: "Нет возможности", score: 0.00 },
   // Accept both casing variants
   { label: "Хард код (Скоро)", score: 0.70 },
   { label: "Хард код (скоро)", score: 0.70 },
@@ -3243,15 +3245,21 @@ function buildSheetPayloadExact(){
 
   // Product requirements (up to 30)
   const prodRows = Array.from(document.querySelectorAll("#prodReqTbody tr"));
+  out.prodreq_count = prodRows.length;
   for(let i=0;i<30;i++){
     const idx=i+1;
     const r=prodRows[i];
     const n = String(idx).padStart(2,"0");
-    out["prod_"+n+"_biz"]  = r ? _cellVal(r.cells[0]) : "";
-    out["prod_"+n+"_func"] = r ? _cellVal(r.cells[1]) : "";
-    out["prod_"+n+"_type"] = r ? _cellVal(r.cells[2]) : "";
-    out["prod_"+n+"_must"] = r ? _cellVal(r.cells[3]) : "";
-    out["prod_"+n+"_feas"] = r ? _cellVal(r.cells[4]) : "";
+    out["prodreq_"+n+"_biz"]  = r ? _cellVal(r.cells[1]) : "";
+    out["prod_"+n+"_biz"]  = r ? _cellVal(r.cells[1]) : "";
+    out["prodreq_"+n+"_func"] = r ? _cellVal(r.cells[2]) : "";
+    out["prod_"+n+"_func"] = r ? _cellVal(r.cells[2]) : "";
+    out["prodreq_"+n+"_type"] = r ? _cellVal(r.cells[3]) : "";
+    out["prod_"+n+"_type"] = r ? _cellVal(r.cells[3]) : "";
+    out["prodreq_"+n+"_must"] = r ? _cellVal(r.cells[4]) : "";
+    out["prod_"+n+"_must"] = r ? _cellVal(r.cells[4]) : "";
+    out["prodreq_"+n+"_feas"] = r ? _cellVal(r.cells[5]) : "";
+    out["prod_"+n+"_feas"] = r ? _cellVal(r.cells[5]) : "";
   }
 
   // Project risk table (up to 20)
