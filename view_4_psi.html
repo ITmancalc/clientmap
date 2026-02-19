@@ -3811,5 +3811,48 @@ show();
     <input type="hidden" name="payload" value="">
   </form>
 
+
+<script>
+
+/* === ITMEN CSP-SAFE SAVE OVERRIDE (FORM POST) === */
+function syncToGoogleSheets(){
+  const base = (typeof window!=="undefined" && (window.GS_WEBAPP_URL || window.GOOGLE_SHEETS_WEBAPP_URL)) ? String(window.GS_WEBAPP_URL || window.GOOGLE_SHEETS_WEBAPP_URL).trim() : "";
+  if(!base){ console.warn("Google Sheets URL is not set"); return; }
+  const actionUrl = base + (base.includes("?") ? "&" : "?") + "action=save";
+  const payload = (typeof buildSheetPayloadExact==="function") ? buildSheetPayloadExact() : {};
+  // create hidden iframe + form
+  let ifr = document.getElementById("gsHiddenFrame");
+  if(!ifr){
+    ifr = document.createElement("iframe");
+    ifr.id = "gsHiddenFrame";
+    ifr.name = "gsHiddenFrame";
+    ifr.style.display = "none";
+    document.body.appendChild(ifr);
+  }
+  let form = document.getElementById("gsHiddenForm");
+  if(!form){
+    form = document.createElement("form");
+    form.id = "gsHiddenForm";
+    form.method = "POST";
+    form.target = "gsHiddenFrame";
+    form.style.display = "none";
+    document.body.appendChild(form);
+  }
+  form.action = actionUrl;
+  let inp = form.querySelector('input[name="payload"]');
+  if(!inp){
+    inp = document.createElement("input");
+    inp.type = "hidden";
+    inp.name = "payload";
+    form.appendChild(inp);
+  }
+  inp.value = JSON.stringify(payload);
+  try{ form.submit(); console.log("✅ Sheets sync sent (form-post)"); }
+  catch(e){ console.error("❌ Sheets sync failed (form-post)", e); }
+}
+/* === end override === */
+
+</script>
+
 </body>
 </html>
