@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <script src="../config.js"></script>
+  <script src="./config.js"></script>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Карта тестирования + ПСИ — Инферит ИТМен</title>
@@ -1176,6 +1176,7 @@ function paintStat(elId, pct, higherBetter=true){
 }
 function paintRisk(score){
   const el=document.getElementById("kRisk");
+  if(!el) return;
   el.classList.remove("good","warn","bad");
   if(!isFinite(score)) return;
   if(score<=1) el.classList.add("good");
@@ -3265,28 +3266,47 @@ function buildSheetPayloadExact(){
 
 // Override sync to Sheets to use exact payload
 async function syncToGoogleSheets(){
-  const url = (typeof GOOGLE_SHEETS_WEBAPP_URL!=="undefined" && GOOGLE_SHEETS_WEBAPP_URL) ? GOOGLE_SHEETS_WEBAPP_URL : null;
-  if(!url){
-    console.warn("Google Sheets URL is not set");
-    return;
-  }
-  const payload = buildSheetPayloadExact();
-  const body = JSON.stringify(payload);
+  const base = (window.GS_WEBAPP_URL || window.GOOGLE_SHEETS_WEBAPP_URL || "").toString().trim();
+  if(!base){ console.warn("Google Sheets URL is not set"); return; }
+  const url = base + (base.includes("?") ? "&" : "?") + "action=save";
 
-  // 1) Beacon (no CORS / no preflight)
+  // Build payload
+  const payload = (typeof buildSheetPayloadExact==="function") ? buildSheetPayloadExact() : (typeof buildPayloadForSheets==="function" ? buildPayloadForSheets() : {});
+  payload.timestamp = payload.timestamp || new Date().toISOString();
+
+  // CSP-safe POST via hidden form + iframe (no fetch/beacon)
   try{
-    if(navigator.sendBeacon){
-      const ok = navigator.sendBeacon(url, new Blob([body], {type:"text/plain;charset=utf-8"}));
-      if(ok){ console.log("✅ Sheets sync sent (beacon)"); return; }
+    let ifr=document.getElementById("gsHiddenFrame");
+    if(!ifr){
+      ifr=document.createElement("iframe");
+      ifr.id="gsHiddenFrame";
+      ifr.name="gsHiddenFrame";
+      ifr.style.display="none";
+      document.body.appendChild(ifr);
     }
-  }catch(e){ console.warn("Beacon failed", e); }
+    let form=document.getElementById("gsHiddenForm");
+    if(!form){
+      form=document.createElement("form");
+      form.id="gsHiddenForm";
+      form.method="POST";
+      form.target="gsHiddenFrame";
+      form.style.display="none";
+      document.body.appendChild(form);
+    }
+    form.action=url;
+    let inp=form.querySelector('input[name="payload"]');
+    if(!inp){
+      inp=document.createElement("input");
+      inp.type="hidden";
+      inp.name="payload";
+      form.appendChild(inp);
+    }
+    inp.value=JSON.stringify(payload);
 
-  // 2) Fetch no-cors fallback
-  try{
-    await fetch(url, {method:"POST", mode:"no-cors", body, headers: {"Content-Type":"text/plain;charset=utf-8"}});
-    console.log("✅ Sheets sync sent (fetch no-cors)");
+    form.submit();
+    console.log("✅ Sheets sync sent (form-post)");
   }catch(e){
-    console.error("❌ Sheets sync failed", e);
+    console.error("❌ Sheets sync failed (form-post)", e);
   }
 }
 /* ===== end patch ===== */
