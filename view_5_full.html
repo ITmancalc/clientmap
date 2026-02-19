@@ -1,7 +1,8 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <script src="./config.js"></script>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' https: data:; connect-src 'self' https://script.google.com https://script.googleusercontent.com; img-src 'self' data: https:; frame-src https://script.google.com https://script.googleusercontent.com;">
+<script src="../config.js"></script>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Карта тестирования + ПСИ — Инферит ИТМен</title>
@@ -1596,6 +1597,8 @@ function paintIf(id, pct, isPct){
 }
 
 function recalc(){
+  let recover = NaN; // prevent TDZ (used before computed)
+
   console.log("recalc() clicked", new Date().toISOString());
   try{ applyQuickSynthetics(); }catch(e){}
 
@@ -1813,7 +1816,7 @@ const riskIndex = (riskAnswered.length>0)
   const V = clamp((isFinite(est.vmUnusedPct.v)?est.vmUnusedPct.v:vmUnusedPct)/100, 0, 1);
   const L_norm = clamp(L/0.25, 0, 1);
   const V_norm = clamp(V/0.30, 0, 1);
-  let recover = 100 * (1 - (0.6*L_norm + 0.4*V_norm));
+  recover = 100 * (1 - (0.6*L_norm + 0.4*V_norm));
   recover = Math.round(clamp(recover, 0, 100));
   setText("recoverIndex", isFinite(recover) ? `${recover}%` : "—%");
   setText("recoverLabel", recover>=75 ? "Высокий потенциал" : (recover>=45 ? "Средний потенциал" : "Низкий потенциал"));
@@ -2257,21 +2260,24 @@ function exportExcel(){
 
 let _gsyncTimer = null;
 async function syncToGoogleSheets(reason){
-  // GitHub Pages CSP часто блокирует fetch/beacon на внешние домены (connect-src 'self').
-  // Поэтому отправляем данные через скрытую HTML-форму в iframe (это не fetch и обычно не блокируется).
-  clearTimeout(_gsyncTimer);
-  _gsyncTimer = setTimeout(async ()=>{
+  // CSP-safe saving for GitHub Pages: use fetch(no-cors) and allow connect-src via CSP meta in <head>.
+  clearTimeout(window.__gsyncTimer);
+  window.__gsyncTimer = setTimeout(async ()=>{
+    const st = document.getElementById("gsyncStatus");
     try{
+      // Always try to compute indices before saving (but don't block save if UI paint fails)
       try{ recalc(); }catch(_e){}
+
+      const url = (typeof window.GS_WEBAPP_URL === "string" && window.GS_WEBAPP_URL) ? window.GS_WEBAPP_URL :
+                  ((typeof window.GOOGLE_SHEETS_WEBAPP_URL === "string" && window.GOOGLE_SHEETS_WEBAPP_URL) ? window.GOOGLE_SHEETS_WEBAPP_URL : "");
+      if(!url) throw new Error("Google Sheets URL is not set");
+
       const payloadRaw = collect();
       payloadRaw.audit = payloadRaw.audit || {};
       payloadRaw.audit.syncReason = reason || "manual";
       payloadRaw.audit.syncedAt = new Date().toISOString();
-      const payload = flattenForSheets(payloadRaw);
 
-      const st = document.getElementById("gsyncStatus");
-      const url = (typeof GOOGLE_SHEETS_WEBAPP_URL === "string" ? GOOGLE_SHEETS_WEBAPP_URL : "") || "";
-      if(!url) throw new Error("GOOGLE_SHEETS_WEBAPP_URL is not set");
+      const payload = flattenForSheets(payloadRaw);
 
       if(st){
         st.style.display="block";
@@ -2279,47 +2285,26 @@ async function syncToGoogleSheets(reason){
         st.textContent="⏫ Отправляю в Google Sheets…";
       }
 
-      const form = document.getElementById("gsyncForm");
-      const frame = document.getElementById("gsyncFrame");
-      if(!form || !frame) throw new Error("gsync form/iframe not found");
+      await fetch(url + (url.includes("?") ? "&" : "?") + "action=save", {
+        method: "POST",
+        mode: "no-cors",
+        headers: {"Content-Type":"text/plain;charset=utf-8"},
+        body: JSON.stringify(payload)
+      });
 
-      form.action = url;
-      const payloadInput = form.querySelector('input[name="payload"]');
-      payloadInput.value = JSON.stringify(payload);
-
-      let done = false;
-      const onload = () => {
-        if(done) return;
-        done = true;
-        try{ frame.removeEventListener("load", onload); }catch(_){}
-        if(st){
-          st.style.color = "#16a34a";
-          st.textContent = "✅ Отправлено в Google Sheets.";
-          setTimeout(()=>{ try{ st.style.display='none'; }catch(_e){} }, 3500);
-        }
-      };
-      try{ frame.addEventListener("load", onload); }catch(_){}
-
-      form.submit();
-
-      setTimeout(()=>{
-        if(done) return;
-        done = true;
-        if(st){
-          st.style.color = "#16a34a";
-          st.textContent = "✅ Отправлено (проверьте строку в таблице).";
-          setTimeout(()=>{ try{ st.style.display='none'; }catch(_e){} }, 3500);
-        }
-      }, 1500);
-
+      if(st){
+        st.style.color="#16a34a";
+        st.textContent="✅ Отправлено в Google Sheets.";
+        setTimeout(()=>{ try{ st.style.display='none'; }catch(_){} }, 2500);
+      }
+      console.log("✅ Sheets sync sent (fetch no-cors)");
     }catch(err){
       console.error("gsync error", err);
-      const st = document.getElementById("gsyncStatus");
       if(st){
         st.style.display="block";
         st.style.color="#b91c1c";
         st.textContent="⚠️ Ошибка синхронизации: " + ((err && err.message) ? err.message : err);
-        setTimeout(()=>{ try{ st.style.display='none'; }catch(_e){} }, 6500);
+        setTimeout(()=>{ try{ st.style.display='none'; }catch(_){} }, 6500);
       }
     }
   }, 200);
@@ -3283,47 +3268,31 @@ function buildSheetPayloadExact(){
 
 // Override sync to Sheets to use exact payload
 async function syncToGoogleSheets(){
-  const base = (window.GS_WEBAPP_URL || window.GOOGLE_SHEETS_WEBAPP_URL || "").toString().trim();
-  if(!base){ console.warn("Google Sheets URL is not set"); return; }
+  // IMPORTANT: Apps Script routes actions by query parameter.
+  // If we POST raw JSON to /exec without ?action=save, server will default to stats.
+  const base = (typeof GOOGLE_SHEETS_WEBAPP_URL!=="undefined" && GOOGLE_SHEETS_WEBAPP_URL) ? String(GOOGLE_SHEETS_WEBAPP_URL).trim() : "";
+  if(!base){
+    console.warn("Google Sheets URL is not set");
+    return;
+  }
   const url = base + (base.includes("?") ? "&" : "?") + "action=save";
+  const payload = buildSheetPayloadExact();
+  const body = "action=save&payload=" + encodeURIComponent(JSON.stringify(payload));
 
-  // Build payload
-  const payload = (typeof buildSheetPayloadExact==="function") ? buildSheetPayloadExact() : (typeof buildPayloadForSheets==="function" ? buildPayloadForSheets() : {});
-  payload.timestamp = payload.timestamp || new Date().toISOString();
-
-  // CSP-safe POST via hidden form + iframe (no fetch/beacon)
+  // 1) Beacon (no CORS / no preflight)
   try{
-    let ifr=document.getElementById("gsHiddenFrame");
-    if(!ifr){
-      ifr=document.createElement("iframe");
-      ifr.id="gsHiddenFrame";
-      ifr.name="gsHiddenFrame";
-      ifr.style.display="none";
-      document.body.appendChild(ifr);
+    if(navigator.sendBeacon){
+      const ok = navigator.sendBeacon(url, new Blob([body], {type:"text/plain;charset=utf-8"}));
+      if(ok){ console.log("✅ Sheets sync sent (beacon)"); return; }
     }
-    let form=document.getElementById("gsHiddenForm");
-    if(!form){
-      form=document.createElement("form");
-      form.id="gsHiddenForm";
-      form.method="POST";
-      form.target="gsHiddenFrame";
-      form.style.display="none";
-      document.body.appendChild(form);
-    }
-    form.action=url;
-    let inp=form.querySelector('input[name="payload"]');
-    if(!inp){
-      inp=document.createElement("input");
-      inp.type="hidden";
-      inp.name="payload";
-      form.appendChild(inp);
-    }
-    inp.value=JSON.stringify(payload);
+  }catch(e){ console.warn("Beacon failed", e); }
 
-    form.submit();
-    console.log("✅ Sheets sync sent (form-post)");
+  // 2) Fetch no-cors fallback
+  try{
+    await fetch(url, {method:"POST", mode:"no-cors", body, keepalive:true, headers: {"Content-Type":"text/plain;charset=utf-8"}});
+    console.log("✅ Sheets sync sent (fetch no-cors)");
   }catch(e){
-    console.error("❌ Sheets sync failed (form-post)", e);
+    console.error("❌ Sheets sync failed", e);
   }
 }
 /* ===== end patch ===== */
