@@ -912,8 +912,12 @@ const FEAS_OPTIONS = [
   { label: "—", score: null },
   { label: "Полностью", score: 1.00 },
   { label: "Частично", score: 0.60 },
+  // Backward-compat: older sheets stored just "Нет"
+  { label: "Нет", score: 0.00 },
   { label: "Нет возможности", score: 0.00 },
+  // Backward-compat casing variants
   { label: "Хард код (скоро)", score: 0.70 },
+  { label: "Хард код (Скоро)", score: 0.70 },
   { label: "Хард код (не скоро)", score: 0.30 },
   { label: "Требуется скрипт", score: 0.50 },
 ];
@@ -1303,7 +1307,9 @@ const PROD_FEAS_OPTIONS = [
   { label: "Полностью", score: 1.00 },
   { label: "Частично", score: 0.60 },
   { label: "Нет", score: 0.00 },
+  // Accept both casing variants
   { label: "Хард код (Скоро)", score: 0.70 },
+  { label: "Хард код (скоро)", score: 0.70 },
   { label: "Хард код (не скоро)", score: 0.30 },
   { label: "Требуется скрипт", score: 0.50 },
 ];
@@ -3520,12 +3526,19 @@ async function gsSearch(q){
       const rows = [];
       for(let i=1;i<=30;i++){
         const n = String(i).padStart(2,"0");
+        // Some sheets used different prefixes for product requirements.
+        // Support: prod_XX_*, prodreq_XX_*, product_XX_*.
+        const pickProd = (suffix) => (
+          pick(`prod_${n}_${suffix}`) ||
+          pick(`prodreq_${n}_${suffix}`) ||
+          pick(`product_${n}_${suffix}`)
+        );
         const row = {
-          biz: pick(`prod_${n}_biz`),
-          func: pick(`prod_${n}_func`),
-          type: pick(`prod_${n}_type`),
-          must: pick(`prod_${n}_must`),
-          feas: pick(`prod_${n}_feas`),
+          biz: pickProd("biz"),
+          func: pickProd("func"),
+          type: pickProd("type"),
+          must: pickProd("must"),
+          feas: pickProd("feas"),
         };
         const hasAny = Object.values(row).some(v=>String(v??"").trim()!=="");
         if(hasAny) rows.push(row);
