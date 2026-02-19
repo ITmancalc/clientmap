@@ -2256,11 +2256,12 @@ function exportExcel(){
 
 let _gsyncTimer = null;
 async function syncToGoogleSheets(reason){
-  // file:// => origin null. Используем sendBeacon / fetch(no-cors) без preflight.
+  // GitHub Pages CSP часто блокирует fetch/beacon на внешние домены (connect-src 'self').
+  // Поэтому отправляем данные через скрытую HTML-форму в iframe (это не fetch и обычно не блокируется).
   clearTimeout(_gsyncTimer);
   _gsyncTimer = setTimeout(async ()=>{
     try{
-      recalc();
+      try{ recalc(); }catch(_e){}
       const payloadRaw = collect();
       payloadRaw.audit = payloadRaw.audit || {};
       payloadRaw.audit.syncReason = reason || "manual";
@@ -2268,58 +2269,61 @@ async function syncToGoogleSheets(reason){
       const payload = flattenForSheets(payloadRaw);
 
       const st = document.getElementById("gsyncStatus");
-      console.log("GS sync target:", GOOGLE_SHEETS_WEBAPP_URL);
+      const url = (typeof GOOGLE_SHEETS_WEBAPP_URL === "string" ? GOOGLE_SHEETS_WEBAPP_URL : "") || "";
+      if(!url) throw new Error("GOOGLE_SHEETS_WEBAPP_URL is not set");
+
       if(st){
-        st.style.display = "block";
-        st.style.color = "#0ea5e9";
-        st.textContent = "⏫ Отправляю в Google Sheets…";
+        st.style.display="block";
+        st.style.color="#0ea5e9";
+        st.textContent="⏫ Отправляю в Google Sheets…";
       }
 
-      const jsonStr = JSON.stringify(payload);
-      const postBody = "action=save&payload=" + encodeURIComponent(jsonStr);
-      let sent = false;
+      const form = document.getElementById("gsyncForm");
+      const frame = document.getElementById("gsyncFrame");
+      if(!form || !frame) throw new Error("gsync form/iframe not found");
 
-      // 1) sendBeacon (лучший вариант: без CORS, без preflight)
-      try{
-        if(navigator && typeof navigator.sendBeacon === "function"){
-          const blob = new Blob([postBody], { type:"text/plain;charset=UTF-8" }); // text/plain => no preflight
-          sent = navigator.sendBeacon(GOOGLE_SHEETS_WEBAPP_URL, blob);
+      form.action = url;
+      const payloadInput = form.querySelector('input[name="payload"]');
+      payloadInput.value = JSON.stringify(payload);
+
+      let done = false;
+      const onload = () => {
+        if(done) return;
+        done = true;
+        try{ frame.removeEventListener("load", onload); }catch(_){}
+        if(st){
+          st.style.color = "#16a34a";
+          st.textContent = "✅ Отправлено в Google Sheets.";
+          setTimeout(()=>{ try{ st.style.display='none'; }catch(_e){} }, 3500);
         }
-      }catch(_e){ sent = false; }
+      };
+      try{ frame.addEventListener("load", onload); }catch(_){}
 
-      // 2) fallback: fetch no-cors (тоже без preflight, но ответ не читаем)
-      if(!sent){
-        try{
-          await fetch(GOOGLE_SHEETS_WEBAPP_URL, {
-            method:"POST",
-            mode:"no-cors",
-            headers:{ "Content-Type":"text/plain;charset=UTF-8" },
-            body: postBody
-          });
-          sent = true;
-        }catch(_e2){ sent = false; }
-      }
+      form.submit();
 
-      if(st){
-        st.style.color = sent ? "#16a34a" : "#b91c1c";
-        st.textContent = sent
-          ? "✅ Отправлено. Если в таблице не появилось — WebApp должен быть доступен 'Anyone'."
-          : "⚠️ Не удалось отправить. Проверьте URL/доступ WebApp.";
-        setTimeout(()=>{ try{ st.style.display='none'; }catch(_e3){} }, 5500);
-      }
+      setTimeout(()=>{
+        if(done) return;
+        done = true;
+        if(st){
+          st.style.color = "#16a34a";
+          st.textContent = "✅ Отправлено (проверьте строку в таблице).";
+          setTimeout(()=>{ try{ st.style.display='none'; }catch(_e){} }, 3500);
+        }
+      }, 1500);
+
     }catch(err){
       console.error("gsync error", err);
       const st = document.getElementById("gsyncStatus");
-      console.log("GS sync target:", GOOGLE_SHEETS_WEBAPP_URL);
       if(st){
-        st.style.display = "block";
-        st.style.color = "#b91c1c";
-        st.textContent = "⚠️ Ошибка синхронизации: " + (err && err.message ? err.message : err);
-        setTimeout(()=>{ try{ st.style.display='none'; }catch(_e4){} }, 6500);
+        st.style.display="block";
+        st.style.color="#b91c1c";
+        st.textContent="⚠️ Ошибка синхронизации: " + ((err && err.message) ? err.message : err);
+        setTimeout(()=>{ try{ st.style.display='none'; }catch(_e){} }, 6500);
       }
     }
   }, 200);
 }
+
 document.getElementById("btnExportXlsx")?.addEventListener("click", exportExcel);
 
 // Пересчитать = пересчитать + синхронизировать в Google Sheets
@@ -3763,6 +3767,14 @@ show();
   });
 })();
 </script>
+
+
+  <!-- Hidden form/iframe for cross-origin POST (bypasses fetch/beacon CSP on GitHub Pages) -->
+  <iframe id="gsyncFrame" name="gsyncFrame" style="display:none"></iframe>
+  <form id="gsyncForm" target="gsyncFrame" method="POST" style="display:none">
+    <input type="hidden" name="action" value="save">
+    <input type="hidden" name="payload" value="">
+  </form>
 
 </body>
 </html>
