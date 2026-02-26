@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>ИТМен — Выводы</title>
   <script src="config.js"></script>
-  <script src="build_info.js?v=v75"></script>
+  <script src="build_info.js?v=v76"></script>
   <script src="question_bank.js"></script>
   <style>
     :root{
@@ -31,6 +31,14 @@
       color:var(--text);
     }
     a{color:inherit; text-decoration:none}
+
+    .filters{display:flex; flex-wrap:wrap; gap:8px; margin:6px 0 10px}
+    .fbtn{border:1px solid var(--line); background:var(--card); border-radius:999px; padding:6px 10px; font-size:12px; cursor:pointer; user-select:none}
+    .fbtn.off{opacity:.45}
+    .seg{display:flex; gap:8px; margin:6px 0 10px}
+    .seg button{border:1px solid var(--line); background:var(--card); border-radius:999px; padding:6px 10px; font-size:12px; cursor:pointer}
+    .seg button.active{border-color:rgba(239,68,68,.45); box-shadow:0 0 0 3px rgba(239,68,68,.10); font-weight:700}
+
     .wrap{max-width:1280px; margin:24px auto; padding:0 16px 32px;}
     header{display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:16px;}
     .h1{font-size:22px; font-weight:900; letter-spacing:.2px}
@@ -99,13 +107,7 @@
     .cols{display:grid; grid-template-columns:2fr 1fr; gap:12px; margin-top:12px;}
     @media (max-width: 980px){ .cols{grid-template-columns:1fr} }
     .panel{padding:12px; border:1px solid var(--line); border-radius:14px; background:#fff}
-    canvas{width:100% !important; height:320px !important;}
-
-    .tabs{display:flex; gap:8px; flex-wrap:wrap}
-    .tab{padding:8px 10px; border-radius:999px; border:1px solid var(--line); background:#fff; cursor:pointer; font-weight:900; font-size:12px; color:var(--muted)}
-    .tab.active{background:rgba(37,99,235,.10); border-color:rgba(37,99,235,.25); color:var(--accent2)}
-    .tabPanel{display:none}
-    .tabPanel.active{display:block}
+    canvas{width:100% !important; height:290px !important;}
 
     .blocks{display:flex; flex-direction:column; gap:10px}
     .blockRow{display:flex; align-items:center; justify-content:space-between; gap:10px}
@@ -233,34 +235,25 @@
             <div class="panel">
               <div style="display:flex; justify-content:space-between; gap:10px; align-items:flex-end; margin-bottom:8px; flex-wrap:wrap">
                 <div>
-                  <div class="sectionTitle" style="margin:0">Динамика индексов (все)</div>
-                  <div class="muted" style="font-size:12px">По сохранениям в Google Sheets (история строк). Легенда кликабельна — можно скрывать линии.</div>
+                  <div class="sectionTitle" style="margin:0">Динамика индексов</div>
+                  <div class="muted" style="font-size:12px">По сохранениям в Google Sheets (история строк).</div>
                 </div>
                 <div class="pillTag" id="histMeta">—</div>
               </div>
+              <div id="chartFilters" class="filters"></div>
               <canvas id="idxChart"></canvas>
             </div>
             <div class="panel">
               <div class="sectionTitle" style="margin:0 0 8px">Заполненность блоков</div>
               <div id="blocks" class="blocks"></div>
               <div style="height:12px"></div>
-              <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:8px; flex-wrap:wrap">
-                <div class="sectionTitle" style="margin:0">Выводы</div>
-                <div class="tabs">
-                  <button class="tab active" id="tabSales" type="button">Sales</button>
-                  <button class="tab" id="tabPresales" type="button">Pre-Sales</button>
-                </div>
+              <div class="sectionTitle" style="margin:0 0 8px">Выводы</div>
+              <div class="seg" id="modeSeg">
+                <button type="button" data-mode="sales" class="active">Sales</button>
+                <button type="button" data-mode="presales">Pre‑Sales</button>
               </div>
-
-              <div id="panelSales" class="tabPanel active">
-                <div class="muted" style="font-size:12px; margin-bottom:8px">Аргументы подсвечиваются по заполненным ответам (question_bank.js / чеклист).</div>
-                <div id="argsSales" class="list"></div>
-              </div>
-
-              <div id="panelPresales" class="tabPanel">
-                <div class="muted" style="font-size:12px; margin-bottom:8px">Сводка по требованиям (пилот/продукт) и ПСИ-сценариям.</div>
-                <div id="argsPresales" class="list"></div>
-              </div>
+              <div class="muted" style="font-size:12px; margin-bottom:8px">Подсветка на основании заполненных ответов (sales_rules.json) + быстрые подсказки для пресейла.</div>
+              <div id="args" class="list"></div>
             </div>
           </div>
 
@@ -274,6 +267,8 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/date-fns@2.30.0/dist/date-fns.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
   <script>
     const WEBAPP_URL = (window.GS_WEBAPP_URL || "").trim();
     document.getElementById('gsUrlLabel').textContent = WEBAPP_URL ? 'задан' : 'не задан';
@@ -388,30 +383,89 @@
 
     // Chart
     let chart = null;
+    const INDEX_SERIES = [
+      { id:'psi2Score', label:'PSI' },
+      { id:'techIndex', label:'Tech' },
+      { id:'procIndex', label:'Proc' },
+      { id:'riskIndex', label:'Risk' },
+      { id:'probIndex', label:'Prob' },
+      { id:'readyIndex', label:'Ready' },
+      { id:'feasScore', label:'Feas' },
+      { id:'recoverIndex', label:'Recover' },
+      { id:'busIndex', label:'Business' },
+      { id:'obsolIndex', label:'Obsol' },
+      { id:'aiIndex', label:'AI' },
+      { id:'painIndex', label:'Pain' },
+    ];
+
     function ensureChart(){
       if(chart) return chart;
-      chart = new Chart(document.getElementById('idxChart'), {
+
+      const ctx = document.getElementById('idxChart');
+      chart = new Chart(ctx, {
         type:'line',
-        data:{ labels:[], datasets:[
-          {label:'PSI', data:[]},
-          {label:'Tech', data:[]},
-          {label:'Proc', data:[]},
-          {label:'Risk', data:[]},
-          {label:'Prob', data:[]},
-          {label:'Ready', data:[]},
-          {label:'Feas', data:[]},
-          {label:'Recover', data:[]},
-          {label:'Business', data:[]},
-          {label:'Obsol', data:[]},
-          {label:'AI', data:[]},
-          {label:'Pain', data:[]},
-        ]},
+        data:{ datasets: INDEX_SERIES.map(s => ({
+          label: s.label,
+          _id: s.id,
+          data: [],
+          pointRadius: 0,
+          borderWidth: 2,
+          tension: 0.25,
+          spanGaps: true
+        })) },
         options:{
-          responsive:true, maintainAspectRatio:false,
-          plugins:{ legend:{position:'bottom'} },
-          scales:{ y:{ beginAtZero:true, max:100 } }
+          responsive:true,
+          maintainAspectRatio:false,
+          interaction:{ mode:'nearest', intersect:false },
+          plugins:{
+            legend:{
+              position:'bottom',
+              labels:{ usePointStyle:true, pointStyle:'line', boxWidth: 24, padding: 14 }
+            },
+            tooltip:{
+              callbacks:{
+                label:(ctx)=>{
+                  const v = ctx.parsed?.y;
+                  if(v===null || v===undefined || Number.isNaN(v)) return ctx.dataset.label + ': —';
+                  return ctx.dataset.label + ': ' + Math.round(v) + '%';
+                }
+              }
+            }
+          },
+          scales:{
+            x:{
+              type:'time',
+              time:{ unit:'day', tooltipFormat:'yyyy-MM-dd HH:mm' },
+              ticks:{ maxRotation:0, autoSkip:true },
+              grid:{ color:'rgba(15,23,42,.06)' }
+            },
+            y:{
+              beginAtZero:true,
+              max:100,
+              ticks:{ callback:(v)=>v+'%' },
+              grid:{ color:'rgba(15,23,42,.06)' }
+            }
+          }
         }
       });
+
+      // Build filter chips
+      const box = document.getElementById('chartFilters');
+      if(box && !box.dataset.ready){
+        box.dataset.ready = '1';
+        chart.data.datasets.forEach((ds, i)=>{
+          const b = document.createElement('div');
+          b.className = 'fbtn';
+          b.textContent = ds.label;
+          b.onclick = ()=>{
+            ds.hidden = !ds.hidden;
+            b.classList.toggle('off', !!ds.hidden);
+            chart.update();
+          };
+          box.appendChild(b);
+        });
+      }
+
       return chart;
     }
 
@@ -465,101 +519,105 @@
 
     // Arguments: pick top signals from question bank based on truthy values in latest snapshot.
     function computeArguments(latest){
-      const bank = window.ITMEN_QUESTION_BANK || {};
-      const res = [];
-      const keys = Object.keys(bank);
-      // cheap scan: match by normalized keys
-      function norm(s){ return String(s||'').trim().toLowerCase(); }
-      const latestNorm = new Map();
-      for(const k in (latest||{})) latestNorm.set(norm(k), latest[k]);
-
-      for(const q of keys){
-        const meta = bank[q];
-        const v = latestNorm.get(norm(meta.q)) ?? latestNorm.get(norm(q));
-        if(v === undefined || v === null || String(v).trim()==='') continue;
-        const sv = String(v).toLowerCase();
-        const yes = (sv==='да'||sv==='yes'||sv==='true'||sv==='1');
-        const partial = (sv==='частично'||sv==='0.5');
-        if(!(yes || partial)) continue;
-        res.push({
-          title: meta.func || meta.q,
-          text: meta.module ? (meta.module + ' • ' + (meta.zone||'')) : (meta.zone||''),
-          prio: Number(meta.prio||0)
-        });
-      }
-      res.sort((a,b)=> (b.prio||0) - (a.prio||0));
-      return res.slice(0,6);
+      // legacy wrapper
+      return [];
     }
 
-    function computePresalesInsights(latest){
-      const out = [];
-      if(!latest) return out;
+    let CURRENT_MODE = 'sales';
+    let SALES_RULES = null;
 
-      function toNum(v){ const n = Number(v); return isNaN(n) ? null : n; }
-      function isYes(v){ const s=String(v||'').trim().toLowerCase(); return s==='да'||s==='yes'||s==='true'||s==='1'; }
-
-      function parseReq(prefix){
-        const count = Math.min(50, Math.max(0, Number(latest[prefix+'count']||0)));
-        const rows = [];
-        for(let i=1;i<=count;i++){
-          const n = String(i).padStart(2,'0');
-          const base = prefix + n + '_';
-          const text = String(latest[base+'text']||'').trim();
-          if(!text) continue;
-          rows.push({
-            text,
-            must: isYes(latest[base+'must']),
-            feas: toNum(latest[base+'feas']),
-            type: String(latest[base+'type']||'').trim(),
-            owner: String(latest[base+'owner']||'').trim(),
-            metric: String(latest[base+'metric']||'').trim(),
-          });
-        }
-        return rows;
+    async function loadSalesRules(){
+      if(Array.isArray(SALES_RULES)) return SALES_RULES;
+      try{
+        const r = await fetch('sales_rules.json?v=v76', {cache:'no-store'});
+        const j = await r.json();
+        SALES_RULES = Array.isArray(j?.rules) ? j.rules : [];
+      }catch(e){
+        SALES_RULES = [];
       }
-
-      function parsePsi(){
-        const count = Math.min(50, Math.max(0, Number(latest['psi_count']||0)));
-        const rows = [];
-        for(let i=1;i<=count;i++){
-          const n = String(i).padStart(2,'0');
-          const base = 'psi_' + n + '_';
-          const scenario = String(latest[base+'scenario']||latest[base+'text']||'').trim();
-          if(!scenario) continue;
-          const ok = String(latest[base+'ok']||'').trim();
-          rows.push({scenario, ok, comment:String(latest[base+'comment']||'').trim()});
-        }
-        return rows;
-      }
-
-      const pilot = parseReq('req_');
-      const prod  = parseReq('prodreq_');
-      const psi   = parsePsi();
-
-      const mustLowPilot = pilot.filter(r=>r.must && r.feas!==null && r.feas<50).slice(0,5);
-      const mustLowProd  = prod.filter(r=>r.must && r.feas!==null && r.feas<50).slice(0,5);
-      const psiNotOk = psi.filter(r=>{ const s=String(r.ok||'').toLowerCase(); return s && s!=='да' && s!=='ok' && s!=='приняли' && s!=='принят'; }).slice(0,5);
-
-      out.push({title:'Требования к пилоту', text: pilot.length ? (`Всего: ${pilot.length}. Must-have: ${pilot.filter(r=>r.must).length}.`) : 'Нет заполненных требований к пилоту.'});
-      if(mustLowPilot.length) out.push({title:'Риск по пилоту: Must-have с низкой реализуемостью', text: mustLowPilot.map(r=>`• ${r.text} (feas ${r.feas}%)`).join('\n')});
-
-      out.push({title:'Требования к продукту', text: prod.length ? (`Всего: ${prod.length}. Must-have: ${prod.filter(r=>r.must).length}.`) : 'Нет заполненных требований к продукту.'});
-      if(mustLowProd.length) out.push({title:'Риск по продукту: Must-have с низкой реализуемостью', text: mustLowProd.map(r=>`• ${r.text} (feas ${r.feas}%)`).join('\n')});
-
-      out.push({title:'ПСИ-сценарии', text: psi.length ? (`Записей: ${psi.length}. Не-ОК: ${psiNotOk.length}.`) : 'Нет заполненных ПСИ-сценариев.'});
-      if(psiNotOk.length) out.push({title:'Что не проходит (ПСИ)', text: psiNotOk.map(r=>`• ${r.scenario}: ${r.ok}${r.comment?(' — '+r.comment):''}`).join('\n')});
-
-      const feas = toNum(latest.feasScore);
-      if(feas!==null && feas<50) out.push({title:'Рекомендация', text:'Feasibility низкий → сначала снять риски внедрения: источники данных, владельцы процесса, доступы, регламенты, пилотный периметр.'});
-
-      return out;
+      return SALES_RULES;
     }
+
+    function isFilled(v){
+      return v !== undefined && v !== null && String(v).trim() !== '';
+    }
+
+    function normBool(v){
+      const s = String(v ?? '').trim().toLowerCase();
+      return (s==='да'||s==='yes'||s==='true'||s==='1'||s==='y');
+    }
+
+    function num(v){
+      const n = Number(String(v).replace(',', '.'));
+      return Number.isFinite(n) ? n : NaN;
+    }
+
+    function computeSalesArguments(latest, limit=10){
+      const rules = Array.isArray(SALES_RULES) ? SALES_RULES : [];
+      const out=[];
+      for(const r of rules){
+        const key = r.key;
+        const v = latest ? latest[key] : undefined;
+        if(!isFilled(v)) continue;
+
+        let ok=false;
+        if(r.trigger==='filled') ok = isFilled(v);
+        else if(r.trigger==='truthy') ok = normBool(v) || (Number.isFinite(num(v)) && num(v)>0);
+        else if(r.trigger==='gt0') ok = Number.isFinite(num(v)) && num(v)>0;
+        else if(r.trigger==='lt1') ok = Number.isFinite(num(v)) && num(v)<1;
+        else ok = true;
+
+        if(ok) out.push({title:r.param, text:r.text});
+      }
+      return out.slice(0, limit);
+    }
+
+    function computePreSalesTips(latest){
+      const tips=[];
+      if(!latest) return tips;
+      const psi = num(latest.psi2Score ?? latest.psi);
+      const feas = num(latest.feasScore);
+      const ready = num(latest.readyIndex);
+      const reqCount = num(latest.req_count);
+      const psiCount = num(latest.psi_count);
+
+      if(Number.isFinite(psi) && psi < 40) tips.push({title:'PSI низкий', text:'Проверь критические риски и добейся подтверждения данных/источников до обсуждения пилота.'});
+      if(Number.isFinite(feas) && feas < 50 && Number.isFinite(reqCount) && reqCount>0) tips.push({title:'Реализуемость требований к пилоту низкая', text:'Пересобери требования: отдели must-have от nice-to-have и согласуй критерии успеха пилота.'});
+      if(Number.isFinite(ready) && ready < 50) tips.push({title:'Готовность к пилоту низкая', text:'Сфокусируйся на доступах/источниках данных и на минимальном охвате для первого value.'});
+      if(Number.isFinite(psiCount) && psiCount==0) tips.push({title:'Нет требований к ПСИ', text:'Заполни критерии успеха пилота (что считаем “приняли/не приняли”).'});
+
+      return tips;
+    }
+
+    function renderConclusions(latest){
+      const box = document.getElementById('args');
+      if(!box) return;
+      box.innerHTML='';
+      const items = (CURRENT_MODE==='presales') ? computePreSalesTips(latest) : computeSalesArguments(latest, 12);
+      if(!items.length){
+        const empty = document.createElement('div');
+        empty.className='muted';
+        empty.style.fontSize='13px';
+        empty.textContent = (CURRENT_MODE==='presales') ? 'Пока недостаточно данных для выводов Pre‑Sales.' : 'Пока недостаточно заполненных ответов для аргументов Sales.';
+        box.appendChild(empty);
+        return;
+      }
+      for(const it of items){
+        const row=document.createElement('div');
+        row.className='li';
+        row.innerHTML = `<div style="font-weight:800">${escapeHtml(it.title||'')}</div><div class="muted" style="margin-top:4px; white-space:pre-line">${escapeHtml(it.text||'')}</div>`;
+        box.appendChild(row);
+      }
+    }
+
 
     async function loadSummary(company){
       clearErr();
       if(!company){ showErr('Выберите компанию.'); return; }
       if(!WEBAPP_URL){ showErr('GS_WEBAPP_URL пустой (config.js).'); return; }
       updateLinks(company);
+
+      await loadSalesRules();
 
       // Local cache by company
       const cacheKey = 'itmen_summary_'+company;
@@ -584,46 +642,41 @@
       const items = Array.isArray(data.items) ? data.items : [];
       document.getElementById('histMeta').textContent = (items.length? (items.length+' сохранений') : 'нет данных') + (fromCache?' • кэш':'');
 
-      const labels = items.map((it, idx)=>{
-        const t = String(it.timestamp||'').trim();
-        if(!t) return String(idx+1);
-        return t.replace('T',' ').slice(0,16);
-      });
+      function getTs(it, idx){
+        const t = String(it?.timestamp||'').trim();
+        if(!t) return new Date(Date.now() - (items.length-idx)*86400000);
+        const d = new Date(t);
+        return isNaN(d.getTime()) ? new Date(Date.now() - (items.length-idx)*86400000) : d;
+      }
 
-      const ds = {
-        psi: items.map(it=> isFinite(it.psi)? it.psi : null),
-        tech: items.map(it=> isFinite(it.tech)? it.tech : null),
-        proc: items.map(it=> isFinite(it.proc)? it.proc : null),
-        risk: items.map(it=> isFinite(it.risk)? it.risk : null),
-        prob: items.map(it=> isFinite(it.prob)? it.prob : null),
-        ready: items.map(it=> isFinite(it.ready)? it.ready : null),
-        feas: items.map(it=> isFinite(it.feas)? it.feas : null),
-        recover: items.map(it=> isFinite(it.recover)? it.recover : null),
-        bus: items.map(it=> isFinite(it.bus)? it.bus : null),
-        obsol: items.map(it=> isFinite(it.obsol)? it.obsol : null),
-        ai: items.map(it=> isFinite(it.ai)? it.ai : null),
-        pain: items.map(it=> isFinite(it.pain)? it.pain : null),
-      };
+      function getVal(it, id){
+        const pick = (k)=>{
+          const v = it?.[k];
+          const n = Number(String(v).replace(',', '.'));
+          return Number.isFinite(n) ? n : null;
+        };
+        // support both full keys and short aliases from Apps Script
+        if(id==='psi2Score') return pick('psi2Score') ?? pick('psi');
+        if(id==='techIndex') return pick('techIndex') ?? pick('tech');
+        if(id==='procIndex') return pick('procIndex') ?? pick('proc');
+        if(id==='riskIndex') return pick('riskIndex') ?? pick('risk');
+        if(id==='probIndex') return pick('probIndex') ?? pick('prob');
+        if(id==='readyIndex') return pick('readyIndex') ?? pick('ready');
+        // the rest should exist as full keys
+        return pick(id);
+      }
 
       const c = ensureChart();
-      c.data.labels = labels;
-      c.data.datasets[0].data = ds.psi;
-      c.data.datasets[1].data = ds.tech;
-      c.data.datasets[2].data = ds.proc;
-      c.data.datasets[3].data = ds.risk;
-      c.data.datasets[4].data = ds.prob;
-      c.data.datasets[5].data = ds.ready;
-      c.data.datasets[6].data = ds.feas;
-      c.data.datasets[7].data = ds.recover;
-      c.data.datasets[8].data = ds.bus;
-      c.data.datasets[9].data = ds.obsol;
-      c.data.datasets[10].data = ds.ai;
-      c.data.datasets[11].data = ds.pain;
+      c.data.datasets.forEach(ds=>{
+        const id = ds._id;
+        ds.data = items.map((it, idx)=>({ x: getTs(it, idx), y: getVal(it, id) }));
+      });
       c.update();
 
-      const last = items.length ? items[items.length-1] : {};
-      document.getElementById('kpiPsi').textContent = fmtPct(last.psi);
-      document.getElementById('kpiProb').textContent = fmtPct(last.prob);
+      const last = (data && data.latest) ? data.latest : (items.length ? items[items.length-1] : {});
+      window.__ITMEN_LAST = last;
+      document.getElementById('kpiPsi').textContent = fmtPct(last.psi2Score ?? last.psi);
+      document.getElementById('kpiProb').textContent = fmtPct(last.probIndex ?? last.prob);
       document.getElementById('kpiCOI').textContent = fmtRub(last.coiTotal);
       const budget = computeBudget(last.workplaces, last.servers);
       document.getElementById('kpiBudget').textContent = budget ? fmtRub(budget) : '—';
@@ -641,24 +694,8 @@
       }).join('');
       cov.forEach((b,i)=> setBar('bar_'+i, b.pct));
 
-      // Arguments
-      const args = computeArguments(last);
-      const argsEl = document.getElementById('argsSales');
-      argsEl.innerHTML = args.length ? args.map(a=>
-        '<div class="item">'
-          + '<div class="itemTitle">'+escapeHtml(a.title)+'</div>'
-          + '<div class="itemText">'+escapeHtml(a.text)+'</div>'
-        + '</div>'
-      ).join('') : '<div class="muted" style="font-size:13px">Пока нет достаточно заполненных ответов для аргументов.</div>';
-
-      const pres = computePresalesInsights(last);
-      const preEl = document.getElementById('argsPresales');
-      preEl.innerHTML = pres.length ? pres.map(a=>
-        '<div class="item">'
-          + '<div class="itemTitle">'+escapeHtml(a.title)+'</div>'
-          + '<div class="itemText" style="white-space:pre-wrap">'+escapeHtml(a.text)+'</div>'
-        + '</div>'
-      ).join('') : '<div class="muted" style="font-size:13px">Нет данных для Pre-Sales выводов (заполните требования/ПСИ).</div>';
+      // Conclusions (Sales / Pre‑Sales)
+      renderConclusions(last);
 
       // Finance note
       const w = Number(last.workplaces)||0;
@@ -674,23 +711,21 @@
       document.getElementById('financeNote').innerHTML = fn.join('');
     }
 
-    // Tabs
+    // Mode switch (Sales / Pre‑Sales)
     (function(){
-      const tS = document.getElementById('tabSales');
-      const tP = document.getElementById('tabPresales');
-      const pS = document.getElementById('panelSales');
-      const pP = document.getElementById('panelPresales');
-      if(!tS || !tP) return;
-      function setTab(which){
-        const sales = which==='sales';
-        tS.classList.toggle('active', sales);
-        tP.classList.toggle('active', !sales);
-        pS.classList.toggle('active', sales);
-        pP.classList.toggle('active', !sales);
-      }
-      tS.addEventListener('click', ()=>setTab('sales'));
-      tP.addEventListener('click', ()=>setTab('presales'));
+      const seg = document.getElementById('modeSeg');
+      if(!seg) return;
+      seg.addEventListener('click', (e)=>{
+        const btn = e.target.closest('button[data-mode]');
+        if(!btn) return;
+        CURRENT_MODE = btn.dataset.mode;
+        seg.querySelectorAll('button').forEach(b=> b.classList.toggle('active', b===btn));
+        renderConclusions(window.__ITMEN_LAST || null);
+      });
     })();
+
+    // Preload rules
+    loadSalesRules();
 
     // Buttons
     document.getElementById('btnLoad').addEventListener('click', async ()=>{
