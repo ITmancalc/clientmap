@@ -1,8 +1,8 @@
 // Auto-injected build metadata (update on each deploy)
 window.ITMEN_BUILD = {
-  build: "v75",
-  built_at: "2026-02-26T10:30:00Z",
-  source: "repo_v75_summary_all_indices_and_appscript_v7_5"
+  build: "v76",
+  built_at: "2026-02-26T08:25:00Z",
+  source: "repo_v76_summary_chart_filters_sales"
 };
 
 (function(){
