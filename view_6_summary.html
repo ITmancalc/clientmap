@@ -718,7 +718,7 @@
     async function loadAbmNeeds(){
       if(ABM_NEEDS) return ABM_NEEDS;
       try{
-        const r = await fetch('abm_needs.json?v=v81', {cache:'no-store'});
+        const r = await fetch('abm_needs.json?v=v82', {cache:'no-store'});
         ABM_NEEDS = await r.json();
       }catch(e){ ABM_NEEDS = null; }
       return ABM_NEEDS;
@@ -728,7 +728,7 @@
     async function loadSalesRules(){
       if(Array.isArray(SALES_RULES)) return SALES_RULES;
       try{
-        const r = await fetch('sales_rules.json?v=v81', {cache:'no-store'});
+        const r = await fetch('sales_rules.json?v=v82', {cache:'no-store'});
         const j = await r.json();
         SALES_RULES = Array.isArray(j?.rules) ? j.rules : [];
       }catch(e){
@@ -751,24 +751,93 @@
       return Number.isFinite(n) ? n : NaN;
     }
 
-    function computeSalesArguments(latest, limit=12){
+    function computeSalesArguments(latest, limit=24){
       const rules = Array.isArray(SALES_RULES) ? SALES_RULES : [];
       const out=[];
+      if(!latest) return out;
+
+      const keyImpact = (key)=>{
+        const moneyKeys = new Set(['coiTotal','coiManual','coiDowntime','licBudget','hwBudget','salary','manualPct','unusedPct','vmUnusedPct']);
+        const medKeys   = new Set(['branches','servers','workplaces','hostingModel','netSeg','adDomains']);
+        if(moneyKeys.has(key)) return 'high';
+        if(medKeys.has(key)) return 'med';
+        return 'low';
+      };
+
+      const makeTitle = (key, v)=>{
+        const n = num(v);
+        switch(key){
+          case 'coiTotal': return 'Потери от бездействия — реальные деньги';
+          case 'coiManual': return 'Ручные операции = прямые потери';
+          case 'coiDowntime': return 'Простои = прямые потери и репутационный удар';
+          case 'licBudget': return 'Оптимизация лицензий = быстрый возврат денег';
+          case 'unusedPct': return 'Есть неиспользуемые лицензии — бюджет сгорает';
+          case 'vmUnusedPct': return 'Есть неиспользуемые VM — переплата за ресурсы';
+          case 'hwBudget': return 'Железо и ресурсы можно “приземлить” в экономику';
+          case 'salary': return 'Переводим хаос в деньги через стоимость труда';
+          case 'itCount': return 'Перегруз ИТ-команды усиливает хаос и риски';
+          case 'manualPct': return 'Ручной труд = ошибки, задержки, зависимость от людей';
+          case 'branches': return 'Распределённая инфраструктура без контроля = хаос';
+          case 'hostingModel': return 'Модель размещения влияет на риски и стоимость';
+          default: return (String(key||'').trim() ? 'Важный фактор для сделки' : 'Аргумент');
+        }
+      };
+
+      const makeText = (key, v)=>{
+        const n = num(v);
+        switch(key){
+          case 'coiTotal':
+            return `Зафиксируй потери в ₽/год и привяжи обсуждение к бюджету и сроку окупаемости.`;
+          case 'coiManual':
+            return `Покажи, сколько денег “съедает” ручной труд — и предложи путь к автоматизации.`;
+          case 'coiDowntime':
+            return `Свяжи инциденты/простои с деньгами и объясни, что без видимости и контроля риски остаются.`;
+          case 'licBudget':
+            return `У клиента уже есть бюджет на лицензии — покажи экономию на неиспользуемом ПО и порядок в учёте.`;
+          case 'unusedPct':
+            return `Продай идею “вернуть деньги из неиспользуемого ПО” и снизить лицензионные риски.`;
+          case 'vmUnusedPct':
+            return `Продай идею “вернуть деньги из виртуалки/ресурсов” и убрать лишние мощности.`;
+          case 'hwBudget':
+            return `Обоснуй, что учёт и видимость помогают сократить лишние закупки и перерасход.`;
+          case 'salary':
+            return `Стоимость труда — понятный язык для руководства. Используй её, чтобы оправдать инвестиции.`;
+          case 'itCount':
+            return `Покажи зависимость от людей и риск “держится на героях”. Автоматизация снижает нагрузку.`;
+          case 'manualPct':
+            return `Подчеркни риск ошибок и невозможность масштабирования при высокой доле ручных операций.`;
+          case 'branches':
+            return `Надави на потребность стандартизации и контроля по площадкам/филиалам.`;
+          case 'hostingModel':
+            return `Зафиксируй модель (on‑prem/облако/гибрид) — это влияет на пилот и архитектуру.`;
+          default:
+            return `Используй этот пункт как дополнительный аргумент в переговорах.`;
+        }
+      };
+
+      const passes = (cond, v)=>{
+        if(cond==='filled') return isFilled(v);
+        if(cond==='bool_true') return normBool(v);
+        if(cond==='gt0') return Number.isFinite(num(v)) && num(v)>0;
+        if(cond==='lt1') return Number.isFinite(num(v)) && num(v)<1;
+        return isFilled(v);
+      };
+
       for(const r of rules){
         if(r.mode && r.mode !== 'sales') continue;
         const key = r.key;
-        const v = latest ? latest[key] : undefined;
+        const v = latest[key];
 
         const cond = r.cond || r.trigger || 'filled';
-        let ok=false;
+        if(!passes(cond, v)) continue;
 
-        if(cond==='filled') ok = isFilled(v);
-        else if(cond==='bool_true') ok = normBool(v);
-        else if(cond==='gt0') ok = Number.isFinite(num(v)) && num(v)>0;
-        else if(cond==='lt1') ok = Number.isFinite(num(v)) && num(v)<1;
-        else ok = isFilled(v);
-
-        if(ok) out.push({title:r.param || key, text:r.text || '', key, val:v});
+        out.push({
+          title: makeTitle(key, v),
+          text: makeText(key, v),
+          _source: 'Продажи',
+          _impact: keyImpact(key),
+          _basis: (v!==undefined && v!==null && String(v).trim()!=='') ? `${key} = ${String(v)}` : String(key),
+        });
       }
       return out.slice(0, limit);
     }
@@ -825,31 +894,46 @@
       const out=[];
       const threshold = Number(ABM_NEEDS.threshold ?? 0.5);
 
+      const painLabel = (score)=>{
+        if(score >= 0.75) return 'Высокая';
+        if(score >= 0.60) return 'Средняя';
+        return 'Низкая';
+      };
+
       for(const n of (ABM_NEEDS.needs || [])){
         const id = n.Need_ID;
         const row = ABM_NEEDS.matrix ? ABM_NEEDS.matrix[id] : null;
         if(!row) continue;
+
         let sum=0, cnt=0;
-        const touched=[];
         for(const qk of (ABM_NEEDS.questions || [])){
           if(!row[qk]) continue;
           const s = Number(qScores[qk]);
           if(!Number.isFinite(s)) continue;
           sum += s; cnt += 1;
-          touched.push(qk);
         }
         if(!cnt) continue;
+
         const score = sum/cnt;
         if(score >= threshold){
+          const pain = painLabel(score);
           out.push({
             title: n.Need_Name || id,
-            text: `Контур: ${n.Contour || '—'} • Роль: ${n.Role || '—'}\nСигналы: ${touched.slice(0,6).join(', ')}${touched.length>6?'…':''}\nУровень боли: ${Math.round(score*100)}%`
+            _source: 'ABM',
+            _impact: (pain==='Высокая'?'high':pain==='Средняя'?'med':'low'),
+            text:
+              `Контур: ${n.Contour || '—'} • Кому важно: ${n.Role || '—'}
+` +
+              `Уровень боли: ${pain}`,
+            _basis: `Оценка боли: ${Math.round(score*100)}%`
           });
         }
       }
-      return out.sort((a,b)=> (b.text||'').localeCompare(a.text||''));
-    }
 
+      // сортировка: сначала высокая боль
+      const scoreRank = (imp)=> imp==='high'?3:imp==='med'?2:1;
+      return out.sort((a,b)=> scoreRank(b._impact)-scoreRank(a._impact));
+    }
 
     
     async function renderConclusions(latest){
@@ -871,77 +955,8 @@
         return 'low';
       };
 
-      const salesPitch = (it, latest) => {
-        const key = String(it.key||'').toLowerCase();
-        const title = String(it.title||'');
-        const v = (x)=> (x==null||x===''||!isFinite(Number(x))) ? null : Number(x);
-        const rub = (n)=> (n==null? null : (Math.round(n)).toLocaleString('ru-RU') + ' ₽');
-        const pct = (n)=> (n==null? null : (Math.round(n)) + '%');
-
-        // Финансы / экономика
-        if(key==='coitotal' || key==='coi_total' || title.toLowerCase().includes('cost of inaction')){
-          const n = v(latest?.coiTotal ?? latest?.coi_total);
-          return n!=null ? `Потери от “ничего не делать” ≈ ${rub(n)} в год — это главный финансовый рычаг.` :
-                           `Есть стоимость бездействия — можно перевести хаос в деньги и закрепить бюджет.`;
-        }
-        if(key==='manualpct' || title.toLowerCase().includes('ручных')){
-          const n = v(latest?.manualPct ?? latest?.manual_pct);
-          return n!=null ? `До ${pct(n)} операций выполняется вручную — зависимость от людей и прямые потери времени/денег.` :
-                           `Высокая доля ручного труда — можно давить на потери и ошибки из‑за ручных операций.`;
-        }
-        if(key==='salary' || title.toLowerCase().includes('зарплата')){
-          const n = v(latest?.salary);
-          return n!=null ? `ФОТ ИТ высокий (≈ ${rub(n)} в месяц на человека) — ручной труд быстро превращается в миллионы потерь.` :
-                           `По зарплатам ИТ легко показать цену ручного труда и обосновать окупаемость.`;
-        }
-        if(key==='licbudget' || title.toLowerCase().includes('лицензи')){
-          const n = v(latest?.licBudget ?? latest?.lic_budget);
-          return n!=null ? `Бюджет на лицензии ≈ ${rub(n)} в год — можно показать экономию на неиспользуемом ПО.` :
-                           `Лицензии — прямой бюджет: легко показать экономию и риск штрафов.`;
-        }
-        if(key==='unusedpct' || title.toLowerCase().includes('неиспользуемого по')){
-          const n = v(latest?.unusedPct ?? latest?.unused_pct);
-          return n!=null ? `Неиспользуемое ПО ≈ ${pct(n)} — это “деньги на ветер”, можно быстро вернуть бюджет.` :
-                           `Есть неиспользуемые лицензии — аргумент про возврат бюджета.`;
-        }
-        if(key==='vmunusedpct' || title.toLowerCase().includes('неиспользуемых vm')){
-          const n = v(latest?.vmUnusedPct ?? latest?.vm_unused_pct);
-          return n!=null ? `Неиспользуемые VM ≈ ${pct(n)} — можно резать лишние ресурсы и расходы.` :
-                           `Есть лишние виртуальные ресурсы — аргумент про экономию на инфраструктуре.`;
-        }
-        if(key==='hwbudget' || title.toLowerCase().includes('железо')){
-          const n = v(latest?.hwBudget ?? latest?.hw_budget);
-          return n!=null ? `Бюджет на “железо” ≈ ${rub(n)} в год — можно показать экономию и планирование обновлений.` :
-                           `Затраты на железо — аргумент про контроль закупок и планирование.`;
-        }
-
-        // Инфраструктура
-        if(key==='branches' || title.toLowerCase().includes('филиал')){
-          const n = v(latest?.branches);
-          return n!=null ? `Много площадок/филиалов (${n}) — без автоматизации учет превращается в хаос и ошибки.` :
-                           `Распределённая инфраструктура — аргумент про хаос и потребность в автоматизации.`;
-        }
-        if(key==='hostingmodel' || title.toLowerCase().includes('модель размещ')){
-          const m = String(latest?.hostingModel ?? latest?.hosting_model ?? '').trim();
-          return m ? `Модель размещения: ${m} — нужно “свести в одну правду” облако/виртуалки/железо.` :
-                     `Смешанная модель размещения — аргумент про единую картину активов и затрат.`;
-        }
-
-        // ABM / бизнес‑задачи
-        if(it._source === 'ABM'){
-          const t = String(it.text||'');
-          const firstLine = t.split('\n').map(x=>x.trim()).filter(Boolean)[0] || '';
-          return firstLine ? `${title}: ${firstLine}` : title;
-        }
-
-        // Default: сделать “давление” из заголовка
-        return title ? `${title} — есть причина давить на управление, риски и деньги.` : 'Есть важный аргумент для переговоров.';
-      };
-
-
-
       const impactScore = (imp)=> imp==='high'?3:imp==='med'?2:1;
-      const impactLabel = (imp)=> imp==='high'?'Сильный аргумент':imp==='med'?'Умеренный аргумент':'Дополнительный аргумент';
+      const impactLabel = (imp)=> imp==='high'?'Сильный':imp==='med'?'Умеренный':'Дополнительный';
 
       const fmtBasis = (k, v) => {
         if(!k) return '';
@@ -991,7 +1006,6 @@
           obj._impact = inferImpact(obj.title||'', obj.text||'');
           obj._basis  = fmtBasis(obj.key, obj.val);
           obj._cat = (mode==='presales') ? categoryPreSales(obj) : categorySales(obj);
-          if(mode!=='presales') obj._pitch = salesPitch(obj, latest);
           // priority
           let pr = impactScore(obj._impact);
           const tt = (String(obj.title||'')+' '+String(obj.text||'')).toLowerCase();
@@ -1074,8 +1088,8 @@
         <div class="tldrGrid">
           <div class="tldrBox">
             <div class="tldrHead">
-              <div class="tldrTitle">Главное для переговоров (ТОП‑3)</div>
-              <div class="tldrHint">На что давить, чтобы сформировать потребность.</div>
+              <div class="tldrTitle">Главное для продаж (ТОП‑3)</div>
+              <div class="tldrHint">Коротко: на что давить в переговорах.</div>
             </div>
             ${topSales.length ? `<ol class="tldrList">${topSales.map(it=>`<li><b>${escapeHtml(it.title||'')}</b>${it.text?`: <span class="muted">${escapeHtml(it.text).split('\n')[0]}</span>`:''}</li>`).join('')}</ol>` :
               `<div class="muted" style="font-size:13px">Пока не хватает заполненных данных для аргументов.</div>`}
@@ -1113,32 +1127,25 @@
         return keys.map(k=>({cat:k, items:g.get(k)}));
       }
 
-      
       function renderCard(it){
         const imp = it._impact || 'low';
         const src = it._source || '';
         const basis = it._basisMerged || it._basis || '';
-        const pitch = (CURRENT_MODE==='presales') ? (it.title||'') : (it._pitch || it.title || '');
-        const explain = (it.text||'').trim();
-
-        const detailsData = basis ? `<details style="margin-top:10px"><summary class="muted" style="cursor:pointer; font-size:12px">Показать данные</summary><div class="insFoot" style="border-top:none; padding-top:6px">Основание: <b>${escapeHtml(basis)}</b></div></details>` : '';
-        const detailsExplain = explain ? `<details style="margin-top:8px"><summary class="muted" style="cursor:pointer; font-size:12px">Пояснение</summary><div class="insBody" style="margin-top:8px">${escapeHtml(explain)}</div></details>` : '';
-
+        const details = basis ? `<details style="margin-top:10px"><summary class="muted" style="cursor:pointer; font-size:12px">Показать данные</summary><div class="insFoot" style="border-top:none; padding-top:6px">Основание: <b>${escapeHtml(basis)}</b></div></details>` : '';
         return `
           <div class="insCard">
             <div class="insTop">
-              <div class="insTitle" style="font-size:15px">${escapeHtml(pitch)}</div>
-              <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; justify-content:flex-end">
+              <div class="insTitle">${escapeHtml(it.title||'')}</div>
+              <div style="display:flex; gap:8px; align-items:center">
                 ${src ? `<span class="miniTag" title="Источник">${escapeHtml(src)}</span>`:''}
-                <span class="impact ${imp}" title="Сильный — влияет на деньги/срочность; Умеренный — усиливает позицию; Дополнительный — фон">${impactLabel(imp)}</span>
+                <span class="impact ${imp}">${impactLabel(imp)}</span>
               </div>
             </div>
-            ${detailsExplain}
-            ${detailsData}
+            <div class="insBody">${escapeHtml(it.text||'')}</div>
+            ${details}
           </div>
         `;
       }
-
 
       function renderSection(cat, arr){
         // limit: show 5 first, rest in "ещё"
