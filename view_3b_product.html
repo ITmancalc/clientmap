@@ -11,7 +11,7 @@
 <script src="question_bank.js"></script>
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1" name="viewport"/>
-<title>Карта тестирования + ПСИ — ПСИ</title>
+<title>Карта тестирования + ПСИ — Продукт</title>
 <style>
 :root{
   --brand-red:#ff0000;
@@ -332,11 +332,9 @@ body{overflow-x:hidden;}
 
 /* v38: center questions/requirements blocks, prevent horizontal scroll */
 body.view-pilot #cardReq,
-body.view-pilot #cardPassport,
 body.view-pilot #cardMaturity,
 body.view-product #prodReqCard,
 body.view-psi #cardPSI,
-body.view-psi #cardPassport,
 body.view-full #cardMaturity,
 body.view-full #cardReq,
 body.view-full #prodReqCard,
@@ -582,11 +580,9 @@ body.dockCollapsed .quickDock a.tool .toolText{display:none !important}
 </style>
 <style id="pageVisibilityRules">
 
-/* Page: PSI */
-#riskHeatmapCard, #cardMaturity, #cardFinance, #cardReq, #prodReqCard, #projectRisksWrap { display:none !important; }
+/* Page: Product */
+#riskHeatmapCard, #cardMaturity, #cardFinance, #cardReq, #cardPSI, #projectRisksWrap { display:none !important; }
 #cardPassport .row:not(:first-of-type){display:none !important;}
-/* Kill any modals/backdrops */
-.kpiModal, .modal, .backdrop, .overlay, #kpiModal{display:none !important; pointer-events:none !important;}
 .reqDot, .reqMark, .requiredDot, .required { display:none !important; }
 label:has(#company) .reqDot, label:has(#company) .requiredDot, label:has(#company) .required{ display:inline-block !important; }
 </style>
@@ -619,6 +615,9 @@ body.mode-product .passportOnly{display:none!important;}
   visibility:hidden!important;
   opacity:0!important;
 }
+</style><style>
+/* Product page: hide everything except header+company card+requirements product */
+body.mode-product main > section:not(#companyCard):not(.productBlock):not(#productBlock){display:none!important;}
 </style>
 <style id="unifiedWidthAndDropdownFix">
 /* BUILD v61: unify content width across blocks + fix company dropdown clipping */
@@ -723,10 +722,10 @@ body.mode-product .passportOnly{display:none!important;}
   #dockSuggest, .suggestions{ z-index: 20000 !important; }
 </style>
 </head>
-<body class="view-psi pageMode-psi">
+<body class="view-product pageMode-product">
 
 <div id="buildBadge" style="position:fixed;z-index:99999;bottom:12px;right:12px;background:#111827;color:#fff;padding:8px 10px;border-radius:10px;font:12px/1.2 system-ui;box-shadow:0 10px 30px rgba(0,0,0,.15);opacity:.92">
-  BUILD <b>v42</b> • psi
+  BUILD <b>v42</b> • product
 </div>
 
 <div class="quickDock" id="quickDock">
@@ -4637,7 +4636,7 @@ async function gsSearch(q){
       }
     }catch(e){}
 
-    // Cache latest loaded snapshot for cross-block saves.
+    // Cache latest loaded snapshot (even if this page doesn't contain all fields)
     try{
       if(!window.__ITMEN_LATEST_CACHE || typeof window.__ITMEN_LATEST_CACHE !== 'object') window.__ITMEN_LATEST_CACHE = {};
       window.__ITMEN_LATEST_CACHE = Object.assign({}, window.__ITMEN_LATEST_CACHE, payload);
@@ -5306,9 +5305,9 @@ function syncToGoogleSheets(){
 
 <script>
 (function(){
-  const KEEP = new Set(["cardPassport", "cardPSI"]);
+  const KEEP = new Set(["cardPassport", "prodReqCard"]);
   // 1) remove passport extra fields on focused pages
-  const mode = 'psi';
+  const mode = 'product';
   const extra = document.getElementById('passportExtra');
     if (extra && ['indices','pilot','product','psi'].includes(mode)) { extra.remove(); }
   // 3) hide cards not in KEEP (only when KEEP provided)
@@ -5319,14 +5318,24 @@ function syncToGoogleSheets(){
   }
   // 4) for pages that should not show KPI bars / top indices, hide them unless mode=indices/full/interview
   if(['pilot','product','psi'].includes(mode)){
-    document.querySelectorAll('.kpiBar, #riskHeatmapCard').forEach(el=>el.style.display='none');
+    // Hard-remove KPI/indices and heatmap blocks for focused pages
+    document.querySelectorAll('.kpiBar').forEach(el=>el.remove());
+    const rh = document.getElementById('riskHeatmapCard');
+    if(rh) rh.remove();
     // also hide any "risk & readiness" blocks if present
     document.querySelectorAll('[data-section="risk"], .riskGrid, .riskRow').forEach(el=>el.style.display='none');
   }
   if(mode==='product'){
-    // ensure product requirements card visible if exists
+    // Ensure product requirements card is visible and NOT nested inside hidden parents
     const pr=document.getElementById('prodReqCard');
-    if(pr) pr.style.display='';
+    if(pr){
+      // Move out from #cardPSI (in full page it is nested) to the main grid
+      const grid = document.querySelector('.grid');
+      if(grid && pr.parentElement && pr.parentElement.id !== 'grid'){
+        try{ grid.appendChild(pr); }catch(e){}
+      }
+      pr.style.display='';
+    }
   }
 })();
 </script>
