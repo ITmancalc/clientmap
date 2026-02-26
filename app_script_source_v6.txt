@@ -1,0 +1,533 @@
+const CFG = {
+  VERSION: "ITMEN-SANDBOX-AROUND_TEST_SAND-V7.5",
+  // Update if you clone the sandbox sheet
+  SPREADSHEET_ID: "1AjOxzupL3_aZxPuSuUoxw8CNlbqpejFpX0cH-pod7A4",
+  SHEET_GID: 0
+};
+
+
+const MASTER_HEADERS = ["run_id", "timestamp", "pdfMode", "interviewMode", "benchMode", "cLevelText", "company", "industry", "sales_manager", "presale_manager", "synthetic_count", "synthetic_fields", "lpr", "sources", "workplaces", "servers", "branches", "vdi", "closed", "envNote", "virt", "hostingModel", "adDomains", "netSeg", "terminalFarms", "hwAge", "hwAccounting", "redundancy", "salary", "itCount", "manualPct", "licBudget", "unusedPct", "finNote", "vmUnusedPct", "keyPeopleRisk", "docScore", "obsoletePct", "hwBudget", "hwPlan", "downtimeHours", "downtimeCost", "incidentsPerMonth", "serviceDesk", "riskLevelText", "riskNotes", "psi2Score", "psi2Label", "techIndex", "procIndex", "riskIndex", "coiTotal", "recoverIndex", "busIndex", "obsolIndex", "aiIndex", "painIndex", "feasScore", "readyIndex", "readyLabel", "probIndex", "probLabel", "benchCount", "benchProfileLabel", "req_count", "psi_count", "project_risks_count", "project_risk_level", "project_risk_notes", "tech_count", "proc_count", "risk_count", "tech_01_label", "tech_01_score", "tech_01_note", "tech_02_label", "tech_02_score", "tech_02_note", "tech_03_label", "tech_03_score", "tech_03_note", "tech_04_label", "tech_04_score", "tech_04_note", "tech_05_label", "tech_05_score", "tech_05_note", "tech_06_label", "tech_06_score", "tech_06_note", "tech_07_label", "tech_07_score", "tech_07_note", "tech_08_label", "tech_08_score", "tech_08_note", "tech_09_label", "tech_09_score", "tech_09_note", "tech_10_label", "tech_10_score", "tech_10_note", "proc_01_label", "proc_01_score", "proc_01_note", "proc_02_label", "proc_02_score", "proc_02_note", "proc_03_label", "proc_03_score", "proc_03_note", "proc_04_label", "proc_04_score", "proc_04_note", "proc_05_label", "proc_05_score", "proc_05_note", "proc_06_label", "proc_06_score", "proc_06_note", "proc_07_label", "proc_07_score", "proc_07_note", "proc_08_label", "proc_08_score", "proc_08_note", "proc_09_label", "proc_09_score", "proc_09_note", "proc_10_label", "proc_10_score", "proc_10_note", "risk_01_label", "risk_01_val", "risk_01_note", "risk_02_label", "risk_02_val", "risk_02_note", "risk_03_label", "risk_03_val", "risk_03_note", "risk_04_label", "risk_04_val", "risk_04_note", "risk_05_label", "risk_05_val", "risk_05_note", "risk_06_label", "risk_06_val", "risk_06_note", "risk_07_label", "risk_07_val", "risk_07_note", "risk_08_label", "risk_08_val", "risk_08_note", "req_01_text", "req_01_type", "req_01_must", "req_01_feas", "req_01_metric", "req_01_owner", "req_02_text", "req_02_type", "req_02_must", "req_02_feas", "req_02_metric", "req_02_owner", "req_03_text", "req_03_type", "req_03_must", "req_03_feas", "req_03_metric", "req_03_owner", "req_04_text", "req_04_type", "req_04_must", "req_04_feas", "req_04_metric", "req_04_owner", "req_05_text", "req_05_type", "req_05_must", "req_05_feas", "req_05_metric", "req_05_owner", "req_06_text", "req_06_type", "req_06_must", "req_06_feas", "req_06_metric", "req_06_owner", "req_07_text", "req_07_type", "req_07_must", "req_07_feas", "req_07_metric", "req_07_owner", "req_08_text", "req_08_type", "req_08_must", "req_08_feas", "req_08_metric", "req_08_owner", "req_09_text", "req_09_type", "req_09_must", "req_09_feas", "req_09_metric", "req_09_owner", "req_10_text", "req_10_type", "req_10_must", "req_10_feas", "req_10_metric", "req_10_owner", "req_11_text", "req_11_type", "req_11_must", "req_11_feas", "req_11_metric", "req_11_owner", "req_12_text", "req_12_type", "req_12_must", "req_12_feas", "req_12_metric", "req_12_owner", "req_13_text", "req_13_type", "req_13_must", "req_13_feas", "req_13_metric", "req_13_owner", "req_14_text", "req_14_type", "req_14_must", "req_14_feas", "req_14_metric", "req_14_owner", "req_15_text", "req_15_type", "req_15_must", "req_15_feas", "req_15_metric", "req_15_owner", "req_16_text", "req_16_type", "req_16_must", "req_16_feas", "req_16_metric", "req_16_owner", "req_17_text", "req_17_type", "req_17_must", "req_17_feas", "req_17_metric", "req_17_owner", "req_18_text", "req_18_type", "req_18_must", "req_18_feas", "req_18_metric", "req_18_owner", "req_19_text", "req_19_type", "req_19_must", "req_19_feas", "req_19_metric", "req_19_owner", "req_20_text", "req_20_type", "req_20_must", "req_20_feas", "req_20_metric", "req_20_owner", "psi_01_scn", "psi_01_exp", "psi_01_act", "psi_01_ok", "psi_01_acc", "psi_01_note", "psi_02_scn", "psi_02_exp", "psi_02_act", "psi_02_ok", "psi_02_acc", "psi_02_note", "psi_03_scn", "psi_03_exp", "psi_03_act", "psi_03_ok", "psi_03_acc", "psi_03_note", "psi_04_scn", "psi_04_exp", "psi_04_act", "psi_04_ok", "psi_04_acc", "psi_04_note", "psi_05_scn", "psi_05_exp", "psi_05_act", "psi_05_ok", "psi_05_acc", "psi_05_note", "psi_06_scn", "psi_06_exp", "psi_06_act", "psi_06_ok", "psi_06_acc", "psi_06_note", "psi_07_scn", "psi_07_exp", "psi_07_act", "psi_07_ok", "psi_07_acc", "psi_07_note", "psi_08_scn", "psi_08_exp", "psi_08_act", "psi_08_ok", "psi_08_acc", "psi_08_note", "psi_09_scn", "psi_09_exp", "psi_09_act", "psi_09_ok", "psi_09_acc", "psi_09_note", "psi_10_scn", "psi_10_exp", "psi_10_act", "psi_10_ok", "psi_10_acc", "psi_10_note", "psi_11_scn", "psi_11_exp", "psi_11_act", "psi_11_ok", "psi_11_acc", "psi_11_note", "psi_12_scn", "psi_12_exp", "psi_12_act", "psi_12_ok", "psi_12_acc", "psi_12_note", "psi_13_scn", "psi_13_exp", "psi_13_act", "psi_13_ok", "psi_13_acc", "psi_13_note", "psi_14_scn", "psi_14_exp", "psi_14_act", "psi_14_ok", "psi_14_acc", "psi_14_note", "psi_15_scn", "psi_15_exp", "psi_15_act", "psi_15_ok", "psi_15_acc", "psi_15_note", "psi_16_scn", "psi_16_exp", "psi_16_act", "psi_16_ok", "psi_16_acc", "psi_16_note", "psi_17_scn", "psi_17_exp", "psi_17_act", "psi_17_ok", "psi_17_acc", "psi_17_note", "psi_18_scn", "psi_18_exp", "psi_18_act", "psi_18_ok", "psi_18_acc", "psi_18_note", "psi_19_scn", "psi_19_exp", "psi_19_act", "psi_19_ok", "psi_19_acc", "psi_19_note", "psi_20_scn", "psi_20_exp", "psi_20_act", "psi_20_ok", "psi_20_acc", "psi_20_note", "project_risk_01_name", "project_risk_01_condition", "project_risk_01_status", "project_risk_01_note", "project_risk_02_name", "project_risk_02_condition", "project_risk_02_status", "project_risk_02_note", "project_risk_03_name", "project_risk_03_condition", "project_risk_03_status", "project_risk_03_note", "project_risk_04_name", "project_risk_04_condition", "project_risk_04_status", "project_risk_04_note", "project_risk_05_name", "project_risk_05_condition", "project_risk_05_status", "project_risk_05_note", "project_risk_06_name", "project_risk_06_condition", "project_risk_06_status", "project_risk_06_note", "project_risk_07_name", "project_risk_07_condition", "project_risk_07_status", "project_risk_07_note", "project_risk_08_name", "project_risk_08_condition", "project_risk_08_status", "project_risk_08_note", "project_risk_09_name", "project_risk_09_condition", "project_risk_09_status", "project_risk_09_note", "project_risk_10_name", "project_risk_10_condition", "project_risk_10_status", "project_risk_10_note", "project_risk_11_name", "project_risk_11_condition", "project_risk_11_status", "project_risk_11_note", "project_risk_12_name", "project_risk_12_condition", "project_risk_12_status", "project_risk_12_note", "project_risk_13_name", "project_risk_13_condition", "project_risk_13_status", "project_risk_13_note", "project_risk_14_name", "project_risk_14_condition", "project_risk_14_status", "project_risk_14_note", "project_risk_15_name", "project_risk_15_condition", "project_risk_15_status", "project_risk_15_note", "project_risk_16_name", "project_risk_16_condition", "project_risk_16_status", "project_risk_16_note", "project_risk_17_name", "project_risk_17_condition", "project_risk_17_status", "project_risk_17_note", "project_risk_18_name", "project_risk_18_condition", "project_risk_18_status", "project_risk_18_note", "project_risk_19_name", "project_risk_19_condition", "project_risk_19_status", "project_risk_19_note", "project_risk_20_name", "project_risk_20_condition", "project_risk_20_status", "project_risk_20_note", "prodFeasScore", "prodreq_count", "prodreq_01_biz", "prodreq_01_func", "prodreq_01_type", "prodreq_01_must", "prodreq_01_feas", "prodreq_02_biz", "prodreq_02_func", "prodreq_02_type", "prodreq_02_must", "prodreq_02_feas", "prodreq_03_biz", "prodreq_03_func", "prodreq_03_type", "prodreq_03_must", "prodreq_03_feas", "prodreq_04_biz", "prodreq_04_func", "prodreq_04_type", "prodreq_04_must", "prodreq_04_feas", "prodreq_05_biz", "prodreq_05_func", "prodreq_05_type", "prodreq_05_must", "prodreq_05_feas", "prodreq_06_biz", "prodreq_06_func", "prodreq_06_type", "prodreq_06_must", "prodreq_06_feas", "prodreq_07_biz", "prodreq_07_func", "prodreq_07_type", "prodreq_07_must", "prodreq_07_feas", "prodreq_08_biz", "prodreq_08_func", "prodreq_08_type", "prodreq_08_must", "prodreq_08_feas", "prodreq_09_biz", "prodreq_09_func", "prodreq_09_type", "prodreq_09_must", "prodreq_09_feas", "prodreq_10_biz", "prodreq_10_func", "prodreq_10_type", "prodreq_10_must", "prodreq_10_feas", "prodreq_11_biz", "prodreq_11_func", "prodreq_11_type", "prodreq_11_must", "prodreq_11_feas", "prodreq_12_biz", "prodreq_12_func", "prodreq_12_type", "prodreq_12_must", "prodreq_12_feas", "prodreq_13_biz", "prodreq_13_func", "prodreq_13_type", "prodreq_13_must", "prodreq_13_feas", "prodreq_14_biz", "prodreq_14_func", "prodreq_14_type", "prodreq_14_must", "prodreq_14_feas", "prodreq_15_biz", "prodreq_15_func", "prodreq_15_type", "prodreq_15_must", "prodreq_15_feas", "prodreq_16_biz", "prodreq_16_func", "prodreq_16_type", "prodreq_16_must", "prodreq_16_feas", "prodreq_17_biz", "prodreq_17_func", "prodreq_17_type", "prodreq_17_must", "prodreq_17_feas", "prodreq_18_biz", "prodreq_18_func", "prodreq_18_type", "prodreq_18_must", "prodreq_18_feas", "prodreq_19_biz", "prodreq_19_func", "prodreq_19_type", "prodreq_19_must", "prodreq_19_feas", "prodreq_20_biz", "prodreq_20_func", "prodreq_20_type", "prodreq_20_must", "prodreq_20_feas", "psi_01_req", "psi_02_req", "psi_03_req", "psi_04_req", "psi_05_req", "psi_06_req", "psi_07_req", "psi_08_req", "psi_09_req", "psi_10_req", "psi_11_req", "psi_12_req", "psi_13_req", "psi_14_req", "psi_15_req", "psi_16_req", "psi_17_req", "psi_18_req", "psi_19_req", "psi_20_req", "payload", "risk_grey_pct", "risk_lic_pct", "risk_ops_pct", "risk_gov_pct", "pilot_readiness_pct", "main_problem_zone", "rec_modules", "demo_focus", "coi_license_loss", "coi_downtime_loss", "coi_manual_loss", "coi_total_loss"];
+
+
+function doGet(e){ return route_(e, "GET"); }
+function doPost(e){ return route_(e, "POST"); }
+
+function route_(e, method){
+  const p = (e && e.parameter) ? e.parameter : {};
+  const action = String(p.action || "").toLowerCase() || (method === "POST" ? "save" : "stats");
+  const cb = p.callback ? String(p.callback) : "";
+  try{
+    let data;
+    if(action === "ping") data = {ok:true, version:CFG.VERSION, now:new Date().toISOString()};
+    else if(action === "search") data = handleSearch_(p);
+    else if(action === "get") data = handleGet_(p);
+    else if(action === "latest") data = handleLatest_(p);
+    else if(action === "history") data = handleHistory_(p);
+    else if(action === "save") data = handleSave_(e);
+    else if(action === "stats") data = handleStats_(p);
+    else data = {ok:false, error:"Unknown action: " + action, version:CFG.VERSION};
+
+    return output_(data, cb);
+  }catch(err){
+    const out = {ok:false, error:String(err && err.message ? err.message : err), stack:String(err && err.stack ? err.stack : ""), version:CFG.VERSION};
+    return output_(out, cb);
+  }
+}
+
+/* ---------- New actions for Summary page ---------- */
+
+// Returns the latest row for a company, merged with parsed `payload` JSON (same behavior as handleGet_).
+function handleLatest_(p){
+  const sh = getDataSheet_();
+  const {headers, map} = getHeaderMap_(sh);
+  const lastRow = sh.getLastRow();
+  if(lastRow < 2) return {ok:false, error:"No data", version:CFG.VERSION};
+
+  const company = String(p.company||"").trim();
+  if(!company) return {ok:false, error:"company is required", version:CFG.VERSION};
+
+  const colCompany = map["company"] || map["Компания"] || 1;
+  let foundRow = -1;
+  if(lastRow >= 2){
+    const names = sh.getRange(2,colCompany,lastRow-1,1).getValues();
+    for(let i=names.length-1;i>=0;i--){
+      if(String(names[i][0]||"").trim() === company){ foundRow = i+2; break; }
+    }
+  }
+  if(foundRow < 0) return {ok:false, error:"Not found", version:CFG.VERSION};
+
+  // Reuse handleGet_ logic by passing row
+  return handleGet_({row:foundRow});
+}
+
+// Returns all saves for a company as a compact series (for charts).
+function handleHistory_(p){
+  const company = String(p.company||"").trim();
+  if(!company) return {ok:false, error:"company is required", version:CFG.VERSION};
+  const limit = Math.max(1, Math.min(1000, Number(p.limit||400)));
+
+  const sh = getDataSheet_();
+  const {headers, map} = getHeaderMap_(sh);
+  const lastRow = sh.getLastRow();
+  if(lastRow < 2) return {ok:true, items:[], company, version:CFG.VERSION};
+
+  const colCompany = map["company"] || map["Компания"] || 1;
+  const colTs = findTimestampCol_(headers, map);
+
+  function num_(v){
+    const n = Number(v);
+    return (isNaN(n) || v === "") ? null : n;
+  }
+
+  const idxCols = {
+    timestamp: colTs,
+    workplaces: map["workplaces"] || map["Workplaces"] || 0,
+    servers: map["servers"] || map["Servers"] || 0,
+    psi: map["psi2Score"] || map["psi"] || 0,
+    tech: map["techIndex"] || 0,
+    proc: map["procIndex"] || 0,
+    risk: map["riskIndex"] || 0,
+    prob: map["probIndex"] || 0,
+    ready: map["readyIndex"] || 0,
+    coiTotal: map["coiTotal"] || map["coi_total"] || 0,
+    recover: map["recoverIndex"] || 0,
+    bus: map["busIndex"] || 0,
+    obsol: map["obsolIndex"] || 0,
+    ai: map["aiIndex"] || 0,
+    pain: map["painIndex"] || 0,
+    feas: map["feasScore"] || 0,
+    risk_grey_pct: map["risk_grey_pct"] || 0,
+    risk_lic_pct: map["risk_lic_pct"] || 0,
+    risk_ops_pct: map["risk_ops_pct"] || 0,
+    risk_gov_pct: map["risk_gov_pct"] || 0,
+    pilot_readiness_pct: map["pilot_readiness_pct"] || 0,
+  };
+
+  const payloadCol = map["payload"] || map["Payload"] || map["PAYLOAD"] || 0;
+  const maxCol = Math.max(
+    colCompany,
+    colTs||0,
+    payloadCol||0,
+    ...Object.values(idxCols).filter(n=>n)
+  );
+
+  const values = sh.getRange(2, 1, lastRow-1, maxCol).getValues();
+  const items = [];
+
+  for(let i=0;i<values.length;i++){
+    const row = i+2;
+    const rowVals = values[i];
+    if(String(rowVals[colCompany-1]||"").trim() !== company) continue;
+
+    const it = {
+      row,
+      company,
+      timestamp: colTs ? rowVals[colTs-1] : "",
+      workplaces: idxCols.workplaces ? rowVals[idxCols.workplaces-1] : "",
+      servers: idxCols.servers ? rowVals[idxCols.servers-1] : "",
+      psi: idxCols.psi ? num_(rowVals[idxCols.psi-1]) : null,
+      tech: idxCols.tech ? num_(rowVals[idxCols.tech-1]) : null,
+      proc: idxCols.proc ? num_(rowVals[idxCols.proc-1]) : null,
+      risk: idxCols.risk ? num_(rowVals[idxCols.risk-1]) : null,
+      prob: idxCols.prob ? num_(rowVals[idxCols.prob-1]) : null,
+      ready: idxCols.ready ? num_(rowVals[idxCols.ready-1]) : null,
+      coiTotal: idxCols.coiTotal ? num_(rowVals[idxCols.coiTotal-1]) : null,
+      recover: idxCols.recover ? num_(rowVals[idxCols.recover-1]) : null,
+      bus: idxCols.bus ? num_(rowVals[idxCols.bus-1]) : null,
+      obsol: idxCols.obsol ? num_(rowVals[idxCols.obsol-1]) : null,
+      ai: idxCols.ai ? num_(rowVals[idxCols.ai-1]) : null,
+      pain: idxCols.pain ? num_(rowVals[idxCols.pain-1]) : null,
+      feas: idxCols.feas ? num_(rowVals[idxCols.feas-1]) : null,
+      risk_grey_pct: idxCols.risk_grey_pct ? num_(rowVals[idxCols.risk_grey_pct-1]) : null,
+      risk_lic_pct: idxCols.risk_lic_pct ? num_(rowVals[idxCols.risk_lic_pct-1]) : null,
+      risk_ops_pct: idxCols.risk_ops_pct ? num_(rowVals[idxCols.risk_ops_pct-1]) : null,
+      risk_gov_pct: idxCols.risk_gov_pct ? num_(rowVals[idxCols.risk_gov_pct-1]) : null,
+      pilot_readiness_pct: idxCols.pilot_readiness_pct ? num_(rowVals[idxCols.pilot_readiness_pct-1]) : null,
+    };
+
+    if(payloadCol){
+      const raw = rowVals[payloadCol-1];
+      if(raw && typeof raw === "string"){
+        const s = String(raw).trim();
+        if(s && (s[0] === "{" || s[0] === "[")){
+          try{
+            const parsed = JSON.parse(s);
+            const obj = (parsed && typeof parsed === "object" && !Array.isArray(parsed)) ? parsed : null;
+            if(obj){
+              if(it.psi===null && obj.psi2Score!==undefined) it.psi = num_(obj.psi2Score);
+              if(it.tech===null && obj.techIndex!==undefined) it.tech = num_(obj.techIndex);
+              if(it.proc===null && obj.procIndex!==undefined) it.proc = num_(obj.procIndex);
+              if(it.risk===null && obj.riskIndex!==undefined) it.risk = num_(obj.riskIndex);
+              if(it.prob===null && obj.probIndex!==undefined) it.prob = num_(obj.probIndex);
+              if(it.ready===null && obj.readyIndex!==undefined) it.ready = num_(obj.readyIndex);
+              if(it.coiTotal===null && obj.coiTotal!==undefined) it.coiTotal = num_(obj.coiTotal);
+              if(it.recover===null && obj.recoverIndex!==undefined) it.recover = num_(obj.recoverIndex);
+              if(it.bus===null && obj.busIndex!==undefined) it.bus = num_(obj.busIndex);
+              if(it.obsol===null && obj.obsolIndex!==undefined) it.obsol = num_(obj.obsolIndex);
+              if(it.ai===null && obj.aiIndex!==undefined) it.ai = num_(obj.aiIndex);
+              if(it.pain===null && obj.painIndex!==undefined) it.pain = num_(obj.painIndex);
+              if(it.feas===null && obj.feasScore!==undefined) it.feas = num_(obj.feasScore);
+            }
+          }catch(_e){}
+        }
+      }
+    }
+
+    items.push(it);
+  }
+
+  items.sort((a,b)=>{
+    const ta = a.timestamp ? new Date(a.timestamp).getTime() : NaN;
+    const tb = b.timestamp ? new Date(b.timestamp).getTime() : NaN;
+    if(!isNaN(ta) && !isNaN(tb)) return ta - tb;
+    return (a.row||0) - (b.row||0);
+  });
+
+  const sliced = items.length > limit ? items.slice(items.length-limit) : items;
+  return {ok:true, company, items:sliced, total:items.length, version:CFG.VERSION};
+}
+
+function output_(obj, callback){
+  if(callback){
+    const js = callback + "(" + JSON.stringify(obj) + ");";
+    return ContentService.createTextOutput(js).setMimeType(ContentService.MimeType.JAVASCRIPT);
+  }
+  return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
+}
+
+/* ---------- Storage helpers ---------- */
+
+function getSpreadsheet_(){
+  if(!CFG.SPREADSHEET_ID) throw new Error("CFG.SPREADSHEET_ID is not set");
+  return SpreadsheetApp.openById(CFG.SPREADSHEET_ID);
+}
+
+function getDataSheet_(){
+  const ss = getSpreadsheet_();
+  const sheets = ss.getSheets();
+  for(const sh of sheets){
+    if(sh.getSheetId && sh.getSheetId() === Number(CFG.SHEET_GID)) return sh;
+  }
+  return ss.getActiveSheet() || ss.getSheets()[0];
+}
+
+function getHeaderMap_(sheet){
+  // We rely on the header row as the schema. If your sheet was created with a shorter header row,
+  // indices/finance blocks won’t be saved. So we auto-restore the full schema from MASTER_HEADERS.
+  const masterLen = (typeof MASTER_HEADERS !== "undefined" && MASTER_HEADERS && MASTER_HEADERS.length) ? MASTER_HEADERS.length : 0;
+
+  // Read current header row as far as possible (use max columns to avoid getLastColumn truncation)
+  const maxCols = Math.max(sheet.getMaxColumns(), masterLen || 0);
+  if(maxCols < 1) return {headers:[], map:{}};
+
+  let headers = sheet.getRange(1,1,1,maxCols).getValues()[0].map(h=>String(h||"").trim());
+
+  // Trim trailing empties
+  while(headers.length && !headers[headers.length-1]) headers.pop();
+
+  // If header row is empty OR shorter than master OR misses any master columns → restore master schema
+  const needsRestore = (headers.length === 0) || (masterLen && headers.length < masterLen) || (masterLen && MASTER_HEADERS.some((h,i)=>String(headers[i]||"").trim() !== String(h||"").trim()));
+  if(needsRestore && masterLen){
+    // Ensure sheet has enough columns
+    const curMax = sheet.getMaxColumns();
+    if(curMax < masterLen){
+      sheet.insertColumnsAfter(curMax, masterLen - curMax);
+    }
+    sheet.getRange(1,1,1,masterLen).setValues([MASTER_HEADERS]);
+    headers = MASTER_HEADERS.slice();
+  }
+
+  const map = {};
+  headers.forEach((h,i)=>{ if(h) map[h]=i+1; });
+  return {headers, map};
+}
+
+function normalizeKey_(s){
+  return String(s||"")
+    .toLowerCase()
+    .replace(/[\s_\-\.]+/g, "")
+    .replace(/[\(\)\[\]\{\}:;,\/\\'"`~!@#$%^&*+=?|<>]/g, "")
+    .trim();
+}
+
+function buildNormPayloadMap_(payload){
+  const out = {};
+  for(const k in payload){
+    if(!payload.hasOwnProperty(k)) continue;
+    out[normalizeKey_(k)] = payload[k];
+  }
+  return out;
+}
+
+function getValueForHeader_(header, payload, payloadLower, payloadNorm){
+  if(!header) return "";
+  const h = String(header);
+  const lk = h.toLowerCase();
+  const nk = normalizeKey_(h);
+
+  if(payload.hasOwnProperty(h)) return payload[h];
+  if(payloadLower.hasOwnProperty(lk)) return payloadLower[lk];
+  if(payloadNorm.hasOwnProperty(nk)) return payloadNorm[nk];
+
+  const aliases = HEADER_ALIASES_[lk] || HEADER_ALIASES_[nk] || [];
+  for(const a of aliases){
+    const an = normalizeKey_(a);
+    if(payload.hasOwnProperty(a)) return payload[a];
+    if(payloadLower.hasOwnProperty(a.toLowerCase())) return payloadLower[a.toLowerCase()];
+    if(payloadNorm.hasOwnProperty(an)) return payloadNorm[an];
+  }
+
+  return "";
+}
+
+const HEADER_ALIASES_ = {
+  "sales manager": ["sales_manager","salesmanager","fio_sales_manager","фио sales manager","менеджер по продажам","sales"],
+  "salesmanager": ["sales_manager","sales manager","фио sales manager","менеджер по продажам","sales"],
+  "pre-sale менеджер": ["presale_manager","presalemanager","pre_sale_manager","пресейл","presale"],
+  "presale manager": ["presale_manager","presalemanager","pre_sale_manager","пресейл","presale"],
+  "presalemanager": ["presale_manager","presale manager","pre-sale менеджер","пресейл","presale"],
+  "источники данных": ["sources","data_sources","datasources","источник данных","source"],
+  "sources": ["источники данных","data_sources","datasources","источник данных","source"],
+  "timestamp": ["Timestamp","Время","Дата","created_at","createdAt"],
+};
+
+function findTimestampCol_(headers, map){
+  return map["timestamp"] || map["Timestamp"] || map["Время"] || map["Дата"] || map["created_at"] || map["createdAt"] || 0;
+}
+
+/* ---------- Actions ---------- */
+
+function handleSearch_(p){
+  const q = String(p.q||"").trim().toLowerCase();
+  const limit = Math.max(1, Math.min(50, Number(p.limit||10)));
+  const sh = getDataSheet_();
+  const {headers, map} = getHeaderMap_(sh);
+  const colCompany = map["company"] || map["Компания"] || 1;
+  const colTs = findTimestampCol_(headers, map);
+  const lastRow = sh.getLastRow();
+  const items = [];
+
+  if(lastRow >= 2){
+    const nameVals = sh.getRange(2,colCompany,lastRow-1,1).getValues();
+    const tsVals = colTs ? sh.getRange(2,colTs,lastRow-1,1).getValues() : null;
+    const seen = {};
+
+    for(let i=nameVals.length-1;i>=0;i--){
+      const name = String(nameVals[i][0]||"").trim();
+      if(!name) continue;
+      const low = name.toLowerCase();
+      if(q && low.indexOf(q) < 0) continue;
+      if(seen[low]) continue;
+      seen[low] = true;
+      const row = i+2;
+      const timestamp = tsVals ? String(tsVals[i][0]||"") : "";
+      items.push({company:name, row, timestamp});
+      if(items.length >= limit) break;
+    }
+  }
+
+  return {ok:true, items, version:CFG.VERSION};
+}
+
+function handleGet_(p){
+  const sh = getDataSheet_();
+  const {headers, map} = getHeaderMap_(sh);
+  const lastRow = sh.getLastRow();
+  if(lastRow < 2) return {ok:false, error:"No data", version:CFG.VERSION};
+
+  const rowParam = p.row ? Number(p.row) : 0;
+  const company = String(p.company||"").trim();
+
+  let foundRow = -1;
+  const colCompany = map["company"] || map["Компания"] || 1;
+
+  if(rowParam && rowParam >= 2 && rowParam <= lastRow){
+    foundRow = rowParam;
+  } else {
+    if(!company) return {ok:false, error:"company or row is required", version:CFG.VERSION};
+    const names = sh.getRange(2,colCompany,lastRow-1,1).getValues();
+    for(let i=names.length-1;i>=0;i--){
+      if(String(names[i][0]||"").trim() === company){ foundRow = i+2; break; }
+    }
+    if(foundRow < 0) return {ok:false, error:"Not found", version:CFG.VERSION};
+  }
+
+  const rowVals = sh.getRange(foundRow,1,1,headers.length).getValues()[0];
+  const item = {};
+  for(let i=0;i<headers.length;i++){
+    const h = headers[i];
+    if(!h) continue;
+    item[h] = rowVals[i];
+    item[String(h).toLowerCase()] = rowVals[i];
+  }
+
+  const payloadCol = map["payload"] || map["Payload"] || map["PAYLOAD"] || 0;
+  if(payloadCol){
+    const raw = rowVals[payloadCol-1];
+    if(raw && typeof raw === "string"){
+      const s = String(raw).trim();
+      if(s && (s[0] === "{" || s[0] === "[")){
+        try{
+          const parsed = JSON.parse(s);
+          item._payload_parsed = parsed;
+          if(parsed && typeof parsed === "object" && !Array.isArray(parsed)){
+            for(const k in parsed){
+              if(!parsed.hasOwnProperty(k)) continue;
+              if(item[k] === undefined || item[k] === null || item[k] === "") item[k] = parsed[k];
+              const lk = String(k).toLowerCase();
+              if(item[lk] === undefined || item[lk] === null || item[lk] === "") item[lk] = parsed[k];
+            }
+          }
+        }catch(_e){}
+      }
+    }
+  }
+
+  item._row = foundRow;
+  item._company = item.company || item["Компания"] || company || "";
+
+  // Backward compatible: some pages expect `payload` key
+  return {ok:true, payload:item, item, version:CFG.VERSION};
+}
+
+function handleSave_(e){
+  let payloadStr = "";
+  if(e && e.parameter && e.parameter.payload) payloadStr = String(e.parameter.payload);
+  if(!payloadStr && e && e.postData && e.postData.contents){
+    const c = String(e.postData.contents||"");
+    const m = /payload=([^&]+)/.exec(c);
+    if(m) payloadStr = decodeURIComponent(m[1]);
+    else payloadStr = c;
+  }
+  payloadStr = String(payloadStr||"").trim();
+  if(!payloadStr) return {ok:false, error:"payload is empty", version:CFG.VERSION};
+
+  let payload;
+  try{ payload = JSON.parse(payloadStr); }
+  catch(_e){ return {ok:false, error:"payload is not valid JSON", version:CFG.VERSION}; }
+
+  const company = String(payload.company || payload.Компания || "").trim();
+  if(!company) return {ok:false, error:"payload.company is required", version:CFG.VERSION};
+
+  const sh = getDataSheet_();
+  const {headers, map} = getHeaderMap_(sh);
+  if(!headers.length) return {ok:false, error:"Sheet header row is empty", version:CFG.VERSION};
+
+  const colCompany = map["company"] || map["Компания"] || 1;
+
+  const payloadLower = {};
+  for(const k in payload){ if(payload.hasOwnProperty(k)) payloadLower[String(k).toLowerCase()] = payload[k]; }
+  const payloadNorm = buildNormPayloadMap_(payload);
+
+  const lastRow = sh.getLastRow();
+  let latestRow = -1;
+  if(lastRow >= 2){
+    const names = sh.getRange(2,colCompany,lastRow-1,1).getValues();
+    for(let i=names.length-1;i>=0;i--){
+      if(String(names[i][0]||"").trim() === company){ latestRow = i+2; break; }
+    }
+  }
+
+  const upsert = !!payload._upsert;
+  const targetRow = (upsert && latestRow > 0) ? latestRow : (lastRow + 1);
+
+  const row = new Array(headers.length).fill("");
+
+  const nowIso = new Date().toISOString();
+  const tsCol = findTimestampCol_(headers, map);
+  if(tsCol){
+    const idx = tsCol-1;
+    const current = getValueForHeader_(headers[idx], payload, payloadLower, payloadNorm);
+    if(!current) row[idx] = nowIso;
+  }
+
+  for(let i=0;i<headers.length;i++){
+    const h = headers[i];
+    if(!h) continue;
+    if(i === (colCompany-1)) { row[i] = company; continue; }
+
+    let v = getValueForHeader_(h, payload, payloadLower, payloadNorm);
+    if(v && (typeof v === "object")){
+      try{ v = JSON.stringify(v); }catch(_e){}
+    }
+    if(typeof v === "boolean") v = v ? "Да" : "Нет";
+    row[i] = (v === undefined || v === null) ? "" : v;
+  }
+
+  sh.getRange(targetRow,1,1,headers.length).setValues([row]);
+  return {ok:true, saved:true, row:targetRow, company, upsert, version:CFG.VERSION};
+}
+
+function handleStats_(p){
+  const sh = getDataSheet_();
+  const {headers} = getHeaderMap_(sh);
+  const lastRow = sh.getLastRow();
+  const rows = [];
+  if(lastRow >= 2 && headers.length){
+    const data = sh.getRange(2,1,lastRow-1,headers.length).getValues();
+    for(const r of data){
+      const obj = {};
+      for(let i=0;i<headers.length;i++){
+        const h = headers[i];
+        if(!h) continue;
+        obj[h] = r[i];
+        obj[String(h).toLowerCase()] = r[i];
+      }
+      obj.company = obj.company || obj["Компания"] || obj["company"];
+      obj.timestamp = obj.timestamp || obj["timestamp"] || obj["Timestamp"] || obj["Время"] || obj["Дата"];
+      obj.psi = valFirst_(obj, ["psi","psi2Score","psi2score","psi_total","psitotal","psiTotal","psi2Score"]);
+      obj.ready = valFirst_(obj, ["ready","readyIndex","readyindex"]);
+      obj.probability = valFirst_(obj, ["probability","probIndex","probindex"]);
+      obj.risk = valFirst_(obj, ["risk","riskIndex","riskindex"]);
+      obj.synthetic_count = valFirst_(obj, ["synthetic_count","syntheticCount","syntheticcount"]);
+      obj.total_fields = valFirst_(obj, ["total_fields","totalFields","totalfields"]);
+      rows.push(obj);
+    }
+  }
+  const companiesSet = {};
+  for(const r of rows){
+    const c = String(r.company||"").trim();
+    if(c) companiesSet[c]=1;
+  }
+  const summary = {runs: rows.length, companies: Object.keys(companiesSet).length};
+  const latest_records = rows.slice(-50).reverse();
+  const series = buildSeries_(rows);
+  return {ok:true, version:CFG.VERSION, summary, runs:summary.runs, companies:summary.companies, rows, latest_records, series};
+}
+
+function valFirst_(obj, keys){
+  for(const k of keys){
+    if(obj[k] !== undefined && obj[k] !== null && obj[k] !== "") return obj[k];
+  }
+  return "";
+}
+
+function buildSeries_(rows){
+  const buckets = new Map();
+  for(const r of rows){
+    const ts = r.timestamp ? new Date(r.timestamp) : null;
+    const key = ts && !isNaN(ts.getTime())
+      ? Utilities.formatDate(ts, Session.getScriptTimeZone(), "yyyy-MM-dd")
+      : "unknown";
+    if(!buckets.has(key)) buckets.set(key, {date:key, runs:0, psi:0, ready:0, prob:0, risk:0});
+    const b = buckets.get(key);
+    b.runs += 1;
+    b.psi += Number(r.psi||0) || 0;
+    b.ready += Number(r.ready||0) || 0;
+    b.prob += Number(r.probability||0) || 0;
+    b.risk += Number(r.risk||0) || 0;
+  }
+  const out = [];
+  for(const [k,v] of buckets.entries()){
+    out.push({
+      date: v.date,
+      runs: v.runs,
+      psi_avg: v.runs ? (v.psi / v.runs) : 0,
+      ready_avg: v.runs ? (v.ready / v.runs) : 0,
+      probability_avg: v.runs ? (v.prob / v.runs) : 0,
+      risk_avg: v.runs ? (v.risk / v.runs) : 0
+    });
+  }
+  out.sort((a,b)=> String(a.date).localeCompare(String(b.date)));
+  return out;
+}
