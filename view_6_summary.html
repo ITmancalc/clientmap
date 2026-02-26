@@ -240,7 +240,7 @@
                 </div>
                 <div class="pillTag" id="histMeta">—</div>
               </div>
-              <div id="chartFilters" class="filters"></div>
+              <div class="filtersRow"><div id="periodFilters" class="periodFilters"></div><div id="chartFilters" class="filters"></div></div>
               <canvas id="idxChart"></canvas>
             </div>
             <div class="panel">
@@ -383,6 +383,8 @@
 
     // Chart
     let chart = null;
+    let selectedPeriodDays = 90; // 90d default
+
     const INDEX_SERIES = [
       { id:'psi2Score', label:'PSI' },
       { id:'techIndex', label:'Tech' },
@@ -398,6 +400,76 @@
       { id:'painIndex', label:'Pain' },
     ];
 
+    function initPeriodFilters(items){
+      const box = document.getElementById('periodFilters');
+      if(!box) return;
+      const opts = [
+        {d:30, t:'30д'},
+        {d:90, t:'90д'},
+        {d:180, t:'6м'},
+        {d:365, t:'1г'},
+        {d:0, t:'всё'}
+      ];
+      box.innerHTML='';
+      opts.forEach(o=>{
+        const b=document.createElement('button');
+        b.type='button';
+        b.className='periodBtn'+(selectedPeriodDays===o.d?' active':'');
+        b.textContent=o.t;
+        b.onclick=()=>{ selectedPeriodDays=o.d; initPeriodFilters(items); renderChart(items); };
+        box.appendChild(b);
+      });
+    }
+
+    function getTsSafe(it){
+      const t=String(it?.timestamp||'').trim();
+      if(!t) return null;
+      const d=new Date(t);
+      return isNaN(d.getTime())?null:d;
+    }
+
+    function filterItemsByPeriod(items){
+      if(!selectedPeriodDays) return items;
+      const since = Date.now() - selectedPeriodDays*86400000;
+      return items.filter(it=>{
+        const d=getTsSafe(it);
+        if(!d) return true;
+        return d.getTime()>=since;
+      });
+    }
+
+    function applySeriesColors(ds){
+      const palette = [
+        '#2563eb','#16a34a','#f97316','#ef4444','#7c3aed','#0ea5e9',
+        '#22c55e','#eab308','#db2777','#64748b','#14b8a6','#f43f5e'
+      ];
+      ds.forEach((d,i)=>{
+        const c=palette[i%palette.length];
+        d.borderColor=c;
+        d.backgroundColor=c;
+      });
+    }
+
+    function renderChart(items){
+      const list = filterItemsByPeriod(items);
+      const c = ensureChart();
+      // build one point per timestamp for each series
+      const points = list.map((it)=>{
+        const d=getTsSafe(it);
+        return d?d:new Date();
+      });
+      c.data.datasets.forEach((ds)=>{
+        ds.data = list.map((it, idx)=>{
+          const x = points[idx];
+          const v = getVal(it, ds._id);
+          return {x, y:(v===null||v===undefined||Number.isNaN(v)?null:v)};
+        });
+      });
+      applySeriesColors(c.data.datasets);
+      c.update();
+      initChartFilters();
+    }
+
     function ensureChart(){
       if(chart) return chart;
 
@@ -409,8 +481,8 @@
           _id: s.id,
           data: [],
           pointRadius: 0,
-          borderWidth: 2,
-          tension: 0.25,
+          borderWidth: 3,
+          tension: 0.35,
           spanGaps: true
         })) },
         options:{
@@ -420,7 +492,17 @@
           plugins:{
             legend:{
               position:'bottom',
-              labels:{ usePointStyle:true, pointStyle:'line', boxWidth: 24, padding: 14 }
+              labels:{ usePointStyle:true, pointStyle:'line', boxWidth: 24, padding: 14 },
+              onClick:(e, item, legend)=>{
+                const ch = legend.chart;
+                const i = item.datasetIndex;
+                const ds = ch.data.datasets[i];
+                ds.hidden = !ds.hidden;
+                ch.update();
+                // sync chips
+                const chip = document.querySelector(`[data-ds="${i}"]`);
+                if(chip) chip.classList.toggle('off', !!ds.hidden);
+              }
             },
             tooltip:{
               callbacks:{
@@ -453,10 +535,30 @@
       const box = document.getElementById('chartFilters');
       if(box && !box.dataset.ready){
         box.dataset.ready = '1';
+        box.innerHTML='';
+        // quick toggles
+        const allBtn=document.createElement('div');
+        allBtn.className='fbtn';
+        allBtn.textContent='Показать всё';
+        allBtn.onclick=()=>{ chart.data.datasets.forEach((ds,i)=>{ds.hidden=false; const c=document.querySelector(`[data-ds="${i}"]`); if(c) c.classList.remove('off');}); chart.update(); };
+        box.appendChild(allBtn);
+        const noneBtn=document.createElement('div');
+        noneBtn.className='fbtn';
+        noneBtn.textContent='Скрыть всё';
+        noneBtn.onclick=()=>{ chart.data.datasets.forEach((ds,i)=>{ds.hidden=true; const c=document.querySelector(`[data-ds="${i}"]`); if(c) c.classList.add('off');}); chart.update(); };
+        box.appendChild(noneBtn);
+
         chart.data.datasets.forEach((ds, i)=>{
           const b = document.createElement('div');
-          b.className = 'fbtn';
-          b.textContent = ds.label;
+          b.className = 'fbtn' + (ds.hidden?' off':'');
+          b.setAttribute('data-ds', String(i));
+          const dot=document.createElement('span');
+          dot.className='dot';
+          dot.style.color = ds.borderColor || '#2563eb';
+          const t=document.createElement('span');
+          t.textContent = ds.label;
+          b.appendChild(dot);
+          b.appendChild(t);
           b.onclick = ()=>{
             ds.hidden = !ds.hidden;
             b.classList.toggle('off', !!ds.hidden);
@@ -485,36 +587,78 @@
     // Coverage: simple heuristic by presence of typical fields in the latest snapshot.
     // (We keep it simple to avoid hard-coding 600+ fields.)
     function computeCoverage(latest){
-      const blocks = [
-        {key:'interview', name:'Интервью', fields:['sales_manager','presale_manager','lpr','sources','industry']},
-        {key:'infra', name:'Инфраструктура', fields:['workplaces','servers','branches','vdi','closed','hostingModel','adDomains']},
-        {key:'pilot', name:'Требования к пилоту', fields:['req_','pilot_','pilotReq','pilot_requirements']},
-        {key:'product', name:'Требования к продукту', fields:['prod_','productReq','product_requirements']},
-        {key:'finance', name:'Финансы', fields:['coiTotal','coi_total','coiLic','coiDowntime','coiLabor','recoverIndex']},
-      ];
-      const out = [];
-      for(const b of blocks){
-        let total = 0, filled = 0;
-        // If fields contain prefixes, count matching keys
-        for(const f of b.fields){
-          if(f.endsWith('_')){
-            const pref = f;
-            const keys = Object.keys(latest||{}).filter(k=>String(k).startsWith(pref));
-            total += Math.max(10, keys.length);
-            filled += keys.filter(k=>{
-              const v = latest[k];
-              return v !== undefined && v !== null && String(v).trim() !== '';
-            }).length;
-          }else{
-            total += 1;
-            const v = latest[f];
-            if(v !== undefined && v !== null && String(v).trim() !== '') filled += 1;
-          }
-        }
-        const pct = total ? Math.round((filled/total)*100) : 0;
-        out.push({name:b.name, pct});
+      const asNum = (v)=>{ const n=Number(String(v??'').replace(',','.')); return Number.isFinite(n)?n:0; };
+      const has = (k)=>{
+        const v = latest?.[k];
+        if(v===0) return true;
+        if(v===null||v===undefined) return false;
+        const s=String(v).trim();
+        return s!=='' && s!=='—' && s!=='-';
+      };
+      const anyPrefix = (prefix)=> Object.keys(latest||{}).some(k=>k.startsWith(prefix) && has(k));
+      const pct = (filled,total)=> total? Math.round(100*filled/total):0;
+
+      // define blocks
+      const blocks = [];
+
+      // Interview
+      {
+        const keys=['sales_manager','presale_manager','industry','lpr','sources','envNote','riskLevelText','riskNotes'];
+        const total=keys.length;
+        const filled=keys.filter(has).length;
+        blocks.push({key:'interview', name:'Интервью', pct:pct(filled,total)});
       }
-      return out;
+
+      // Infrastructure
+      {
+        const keys=['workplaces','servers','branches','vdi','closed','virt','hostingModel','adDomains','netSeg','terminalFarms','hwAge','hwAccounting','redundancy'];
+        const total=keys.length;
+        const filled=keys.filter(has).length;
+        blocks.push({key:'infra', name:'Инфраструктура', pct:pct(filled,total)});
+      }
+
+      // Pilot requirements (req_*)
+      {
+        const total=20;
+        let filled=0;
+        for(let i=1;i<=20;i++){
+          const id=String(i).padStart(2,'0');
+          if(has('req_'+id+'_text')) filled++;
+        }
+        blocks.push({key:'pilot', name:'Требования к пилоту', pct:pct(filled,total)});
+      }
+
+      // Product requirements (prodreq_*)
+      {
+        const total=20;
+        let filled=0;
+        for(let i=1;i<=20;i++){
+          const id=String(i).padStart(2,'0');
+          if(has('prodreq_'+id+'_biz') || has('prodreq_'+id+'_func')) filled++;
+        }
+        blocks.push({key:'product', name:'Требования к продукту', pct:pct(filled,total)});
+      }
+
+      // PSI (psi_01_scn etc)
+      {
+        const total=20;
+        let filled=0;
+        for(let i=1;i<=20;i++){
+          const id=String(i).padStart(2,'0');
+          if(has('psi_'+id+'_scn') || has('psi_'+id+'_exp') || has('psi_'+id+'_act')) filled++;
+        }
+        blocks.push({key:'psi', name:'ПСИ', pct:pct(filled,total)});
+      }
+
+      // Finance
+      {
+        const keys=['salary','itCount','manualPct','licBudget','unusedPct','vmUnusedPct','hwBudget','hwPlan','downtimeHours','downtimeCost','incidentsPerMonth','serviceDesk','coiTotal','coi_total_loss','coi_license_loss','coi_manual_loss','coi_downtime_loss'];
+        const total=keys.length;
+        const filled=keys.filter(has).length;
+        blocks.push({key:'finance', name:'Финансы', pct:pct(filled,total)});
+      }
+
+      return blocks;
     }
 
     // Arguments: pick top signals from question bank based on truthy values in latest snapshot.
@@ -555,6 +699,8 @@
     function computeSalesArguments(latest, limit=10){
       const rules = Array.isArray(SALES_RULES) ? SALES_RULES : [];
       const out=[];
+
+      // 1) rules from checklist
       for(const r of rules){
         const key = r.key;
         const v = latest ? latest[key] : undefined;
@@ -569,7 +715,34 @@
 
         if(ok) out.push({title:r.param, text:r.text});
       }
-      return out.slice(0, limit);
+
+      // 2) hard fallback (если чеклист не сработал / мало данных)
+      if(latest){
+        const branches = num(latest.branches);
+        const closed = normBool(latest.closed);
+        const manual = num(latest.manualPct);
+        const unused = num(latest.unusedPct);
+        const vmUnused = num(latest.vmUnusedPct);
+        const coi = num(latest.coiTotal);
+        if(Number.isFinite(coi) && coi>0) out.unshift({title:'Cost of Inaction', text:'У клиента уже есть стоимость бездействия — можно вести разговор про окупаемость и быстрый value.'});
+        if(Number.isFinite(branches) && branches>1) out.push({title:'Распределённая инфраструктура', text:'Филиалы → сложнее контролировать активы и изменения. ITМен даёт единый контур прозрачности.'});
+        if(closed) out.push({title:'Закрытый контур', text:'В закрытых контурах “ручной учёт” почти неизбежен — аргумент про автоматизацию и снижение операционных рисков.'});
+        if(Number.isFinite(manual) && manual>0) out.push({title:'Ручные операции', text:'Высокая доля ручного труда → потери времени, ошибки, зависимость от людей. Переводи в деньги через COI.'});
+        if(Number.isFinite(unused) && unused>0) out.push({title:'Неиспользуемое ПО', text:'Есть потенциал оптимизации лицензий и снижение лицензионных рисков (SAM + библиотека ПО).'});
+        if(Number.isFinite(vmUnused) && vmUnused>0) out.push({title:'Виртуальные ресурсы', text:'Оптимизация виртуалки/кластеров → быстрый возврат бюджета и “быстрые победы”.'});
+      }
+
+      // dedupe by title
+      const seen = new Set();
+      const uniq = [];
+      for(const x of out){
+        const k = String(x.title||'').trim();
+        if(!k) continue;
+        if(seen.has(k)) continue;
+        seen.add(k);
+        uniq.push(x);
+      }
+      return uniq.slice(0, limit);
     }
 
     function computePreSalesTips(latest){
