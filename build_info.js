@@ -1,8 +1,8 @@
 // Auto-injected build metadata (update on each deploy)
 window.ITMEN_BUILD = {
-  build: "v81",
-  built_at: "2026-02-26T13:41:11Z",
-  source: "repo_v81_summary_conclusions_ux"
+  build: "v82",
+  built_at: "2026-02-26T14:23:49Z",
+  source: "repo_v82_strategy_rework"
 };
 
 (function(){
