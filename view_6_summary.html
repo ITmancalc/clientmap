@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>ИТМен — Выводы</title>
   <script src="config.js"></script>
-  <script src="build_info.js?v=v82"></script>
+  <script src="build_info.js?v=v83"></script>
   <script src="question_bank.js"></script>
   <style>
     :root{
@@ -162,6 +162,16 @@
     .miniTag{font-size:11px; font-weight:900; padding:4px 8px; border-radius:999px; border:1px solid rgba(15,23,42,.12); color:var(--muted); background:rgba(15,23,42,.04); white-space:nowrap}
 
   </style>
+
+<style id="global-loader-css">
+#globalLoader{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:100000;background:rgba(255,255,255,.65);backdrop-filter: blur(6px);}
+#globalLoader .box{background:#fff;border:1px solid #e5e7eb;border-radius:18px;box-shadow:0 20px 50px rgba(0,0,0,.18);padding:16px 18px;min-width:280px;max-width:520px;display:flex;gap:12px;align-items:center}
+#globalLoader .spinner{width:22px;height:22px;border-radius:999px;border:3px solid #e5e7eb;border-top-color:#0ea5e9;animation:glspin 0.9s linear infinite}
+#globalLoader .title{font-weight:900;color:#0f172a;font-size:13px;margin:0}
+#globalLoader .sub{color:#64748b;font-size:12px;margin:2px 0 0 0;line-height:1.35}
+@keyframes glspin{to{transform:rotate(360deg)}}
+</style>
+
 </head>
 <body>
   <div class="wrap">
@@ -438,6 +448,10 @@
         });
       }catch(e){
         showErr('Поиск: не удалось обратиться к Apps Script. Проверь URL и доступ Web App.');
+      }
+      finally{
+        if(__glTimer){ clearTimeout(__glTimer); __glTimer=null; }
+        hideGlobalLoader();
       }
     }
 
@@ -718,7 +732,7 @@
     async function loadAbmNeeds(){
       if(ABM_NEEDS) return ABM_NEEDS;
       try{
-        const r = await fetch('abm_needs.json?v=v82', {cache:'no-store'});
+        const r = await fetch('abm_needs.json?v=v83', {cache:'no-store'});
         ABM_NEEDS = await r.json();
       }catch(e){ ABM_NEEDS = null; }
       return ABM_NEEDS;
@@ -728,7 +742,7 @@
     async function loadSalesRules(){
       if(Array.isArray(SALES_RULES)) return SALES_RULES;
       try{
-        const r = await fetch('sales_rules.json?v=v82', {cache:'no-store'});
+        const r = await fetch('sales_rules.json?v=v83', {cache:'no-store'});
         const j = await r.json();
         SALES_RULES = Array.isArray(j?.rules) ? j.rules : [];
       }catch(e){
@@ -938,7 +952,11 @@
     
     async function renderConclusions(latest){
       await loadSalesRules();
-      await loadAbmNeeds();
+      
+      // показать лоудер, если запрос медленный (без мерцания)
+      if(__glTimer) { clearTimeout(__glTimer); __glTimer = null; }
+      __glTimer = setTimeout(()=>showGlobalLoader("Загружаю данные…","Подтягиваем историю компании и последний слепок."), 250);
+await loadAbmNeeds();
 
       const tldrEl = document.getElementById('argsTLDR');
       const secEl  = document.getElementById('argsSections');
@@ -1213,7 +1231,25 @@
     }
 
 
-    async function loadSummary(company){
+    
+    // Global loader (как на остальных листах)
+    let __glTimer = null;
+    function showGlobalLoader(title, sub){
+      const el = document.getElementById("globalLoader");
+      if(!el) return;
+      const t = document.getElementById("globalLoaderTitle");
+      const s = document.getElementById("globalLoaderSub");
+      if(title && t) t.textContent = title;
+      if(sub && s) s.textContent = sub;
+      el.style.display = "flex";
+    }
+    function hideGlobalLoader(){
+      const el = document.getElementById("globalLoader");
+      if(!el) return;
+      el.style.display = "none";
+    }
+
+async function loadSummary(company){
       clearErr();
       if(!company){ showErr('Выберите компанию.'); return; }
       if(!WEBAPP_URL){ showErr('GS_WEBAPP_URL пустой (config.js).'); return; }
@@ -1221,7 +1257,11 @@
 
       await loadSalesRules();
 
-      // Local cache by company
+      
+      // показать лоудер, если запрос медленный (без мерцания)
+      if(__glTimer) { clearTimeout(__glTimer); __glTimer = null; }
+      __glTimer = setTimeout(()=>showGlobalLoader("Загружаю данные…","Подтягиваем историю компании и последний слепок."), 250);
+// Local cache by company
       const cacheKey = 'itmen_summary_'+company;
       const cached = localStorage.getItem(cacheKey);
       if(cached){
@@ -1237,6 +1277,10 @@
         renderSummary(data, company, false);
       }catch(e){
         showErr('Ошибка загрузки истории. Проверь доступность Web App и права.');
+      }
+      finally{
+        if(__glTimer){ clearTimeout(__glTimer); __glTimer=null; }
+        hideGlobalLoader();
       }
     }
 
@@ -1409,5 +1453,16 @@
       if(c){ companyInput.value = c; selectedCompany = c; loadSummary(c); }
     })();
   </script>
+
+<div aria-hidden="true" id="globalLoader">
+  <div class="box">
+    <div class="spinner" aria-hidden="true"></div>
+    <div>
+      <p class="title" id="globalLoaderTitle">Загружаю…</p>
+      <p class="sub" id="globalLoaderSub">Получаем данные из Google Sheets, это может занять несколько секунд.</p>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
