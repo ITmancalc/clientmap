@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>ИТМен — Выводы</title>
   <script src="config.js"></script>
-  <script src="build_info.js?v=v76"></script>
+  <script src="build_info.js?v=v78"></script>
   <script src="question_bank.js"></script>
   <style>
     :root{
@@ -231,6 +231,17 @@
             <div class="kpi"><div class="kpiVal" id="kpiBudget">—</div><div class="kpiLbl">Оценка проекта (₽)</div></div>
           </div>
 
+          <div class="panel" style="margin-top:12px">
+            <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px; flex-wrap:wrap">
+              <div>
+                <div class="sectionTitle" style="margin:0">Executive snapshot</div>
+                <div class="muted" style="font-size:12px">Автоматический статус сделки + фокус следующего шага.</div>
+              </div>
+              <div class="pillTag" id="dealStatus">—</div>
+            </div>
+            <div id="dealNext" class="list" style="margin-top:10px"></div>
+          </div>
+
           <div class="cols">
             <div class="panel">
               <div style="display:flex; justify-content:space-between; gap:10px; align-items:flex-end; margin-bottom:8px; flex-wrap:wrap">
@@ -240,7 +251,18 @@
                 </div>
                 <div class="pillTag" id="histMeta">—</div>
               </div>
-              <div class="filtersRow"><div id="periodFilters" class="periodFilters"></div><div id="chartFilters" class="filters"></div></div>
+              <div style="display:flex; justify-content:space-between; gap:10px; align-items:center; flex-wrap:wrap">
+                <div class="seg" id="chartModeSeg" style="margin:0">
+                  <button type="button" data-chartmode="core" class="active">Core</button>
+                  <button type="button" data-chartmode="advanced">Advanced</button>
+                </div>
+                <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap">
+                  <button type="button" class="btn ghost" id="btnShowAll" style="padding:7px 10px; font-size:12px">Показать всё</button>
+                  <button type="button" class="btn ghost" id="btnHideAll" style="padding:7px 10px; font-size:12px">Скрыть всё</button>
+                </div>
+              </div>
+              <div class="muted" style="font-size:12px; margin-top:6px">Клик по легенде или по чипсам скрывает/показывает индексы. Core — только PSI/Prob/Risk.</div>
+              <div id="chartFilters" class="filters"></div>
               <canvas id="idxChart"></canvas>
             </div>
             <div class="panel">
@@ -266,6 +288,7 @@
     </div>
   </div>
 
+  <!-- Chart.js (CDN). Note: source-map fetch may be blocked by CSP, but the library itself works. -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/date-fns@2.30.0/dist/date-fns.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
@@ -383,14 +406,12 @@
 
     // Chart
     let chart = null;
-    let selectedPeriodDays = 90; // 90d default
-
     const INDEX_SERIES = [
       { id:'psi2Score', label:'PSI' },
+      { id:'probIndex', label:'Prob' },
+      { id:'riskIndex', label:'Risk' },
       { id:'techIndex', label:'Tech' },
       { id:'procIndex', label:'Proc' },
-      { id:'riskIndex', label:'Risk' },
-      { id:'probIndex', label:'Prob' },
       { id:'readyIndex', label:'Ready' },
       { id:'feasScore', label:'Feas' },
       { id:'recoverIndex', label:'Recover' },
@@ -400,74 +421,32 @@
       { id:'painIndex', label:'Pain' },
     ];
 
-    function initPeriodFilters(items){
-      const box = document.getElementById('periodFilters');
-      if(!box) return;
-      const opts = [
-        {d:30, t:'30д'},
-        {d:90, t:'90д'},
-        {d:180, t:'6м'},
-        {d:365, t:'1г'},
-        {d:0, t:'всё'}
-      ];
-      box.innerHTML='';
-      opts.forEach(o=>{
-        const b=document.createElement('button');
-        b.type='button';
-        b.className='periodBtn'+(selectedPeriodDays===o.d?' active':'');
-        b.textContent=o.t;
-        b.onclick=()=>{ selectedPeriodDays=o.d; initPeriodFilters(items); renderChart(items); };
-        box.appendChild(b);
-      });
-    }
+    const CORE_IDS = new Set(['psi2Score','probIndex','riskIndex']);
+    let CHART_MODE = 'core';
 
-    function getTsSafe(it){
-      const t=String(it?.timestamp||'').trim();
-      if(!t) return null;
-      const d=new Date(t);
-      return isNaN(d.getTime())?null:d;
-    }
+    const PALETTE = [
+      'rgba(37, 99, 235, 0.95)',
+      'rgba(20, 184, 166, 0.95)',
+      'rgba(239, 68, 68, 0.95)',
+      'rgba(99, 102, 241, 0.95)',
+      'rgba(245, 158, 11, 0.95)',
+      'rgba(16, 185, 129, 0.95)',
+      'rgba(168, 85, 247, 0.95)',
+      'rgba(236, 72, 153, 0.95)',
+      'rgba(148, 163, 184, 0.95)',
+      'rgba(14, 165, 233, 0.95)',
+      'rgba(34, 197, 94, 0.95)',
+      'rgba(244, 63, 94, 0.95)',
+    ];
 
-    function filterItemsByPeriod(items){
-      if(!selectedPeriodDays) return items;
-      const since = Date.now() - selectedPeriodDays*86400000;
-      return items.filter(it=>{
-        const d=getTsSafe(it);
-        if(!d) return true;
-        return d.getTime()>=since;
-      });
-    }
-
-    function applySeriesColors(ds){
-      const palette = [
-        '#2563eb','#16a34a','#f97316','#ef4444','#7c3aed','#0ea5e9',
-        '#22c55e','#eab308','#db2777','#64748b','#14b8a6','#f43f5e'
-      ];
-      ds.forEach((d,i)=>{
-        const c=palette[i%palette.length];
-        d.borderColor=c;
-        d.backgroundColor=c;
-      });
-    }
-
-    function renderChart(items){
-      const list = filterItemsByPeriod(items);
-      const c = ensureChart();
-      // build one point per timestamp for each series
-      const points = list.map((it)=>{
-        const d=getTsSafe(it);
-        return d?d:new Date();
-      });
-      c.data.datasets.forEach((ds)=>{
-        ds.data = list.map((it, idx)=>{
-          const x = points[idx];
-          const v = getVal(it, ds._id);
-          return {x, y:(v===null||v===undefined||Number.isNaN(v)?null:v)};
-        });
-      });
-      applySeriesColors(c.data.datasets);
-      c.update();
-      initChartFilters();
+    function parseTs(ts){
+      const raw = String(ts ?? '').trim();
+      if(!raw) return null;
+      // Accept: 'YYYY-MM-DDTHH:mm:ssZ' or 'YYYY-MM-DD HH:mm:ss'
+      let s = raw;
+      if(s.includes(' ') && !s.includes('T')) s = s.replace(' ', 'T');
+      const d = new Date(s);
+      return isNaN(d.getTime()) ? null : d;
     }
 
     function ensureChart(){
@@ -476,14 +455,18 @@
       const ctx = document.getElementById('idxChart');
       chart = new Chart(ctx, {
         type:'line',
-        data:{ datasets: INDEX_SERIES.map(s => ({
+        data:{ datasets: INDEX_SERIES.map((s, i) => ({
           label: s.label,
           _id: s.id,
           data: [],
+          parsing: false,
           pointRadius: 0,
-          borderWidth: 3,
+          borderWidth: CORE_IDS.has(s.id) ? 3 : 2,
           tension: 0.35,
-          spanGaps: true
+          spanGaps: true,
+          borderColor: PALETTE[i % PALETTE.length],
+          backgroundColor: PALETTE[i % PALETTE.length],
+          hidden: !CORE_IDS.has(s.id)
         })) },
         options:{
           responsive:true,
@@ -494,14 +477,11 @@
               position:'bottom',
               labels:{ usePointStyle:true, pointStyle:'line', boxWidth: 24, padding: 14 },
               onClick:(e, item, legend)=>{
-                const ch = legend.chart;
                 const i = item.datasetIndex;
-                const ds = ch.data.datasets[i];
+                const ds = chart.data.datasets[i];
                 ds.hidden = !ds.hidden;
-                ch.update();
-                // sync chips
-                const chip = document.querySelector(`[data-ds="${i}"]`);
-                if(chip) chip.classList.toggle('off', !!ds.hidden);
+                syncFilterButtons();
+                chart.update();
               }
             },
             tooltip:{
@@ -518,7 +498,7 @@
             x:{
               type:'time',
               time:{ unit:'day', tooltipFormat:'yyyy-MM-dd HH:mm' },
-              ticks:{ maxRotation:0, autoSkip:true },
+              ticks:{ autoSkip:true, maxTicksLimit: 10 },
               grid:{ color:'rgba(15,23,42,.06)' }
             },
             y:{
@@ -527,48 +507,108 @@
               ticks:{ callback:(v)=>v+'%' },
               grid:{ color:'rgba(15,23,42,.06)' }
             }
+          },
+          onHover:(evt, active)=>{
+            if(!chart) return;
+            const activeIdx = active && active.length ? active[0].datasetIndex : null;
+            applyFocus(activeIdx);
           }
         }
       });
+
+      function applyFocus(activeIdx){
+        chart.data.datasets.forEach((ds, i)=>{
+          const base = PALETTE[i % PALETTE.length];
+          if(activeIdx===null){
+            ds.borderColor = base;
+            ds.borderWidth = CORE_IDS.has(ds._id) ? 3 : 2;
+            ds.borderDash = [];
+          } else if(i===activeIdx){
+            ds.borderColor = base;
+            ds.borderWidth = 4;
+            ds.borderDash = [];
+          } else {
+            ds.borderColor = base.replace(/0\.95\)/,'0.18)');
+            ds.borderWidth = 2;
+            ds.borderDash = [4,4];
+          }
+        });
+        chart.update('none');
+      }
 
       // Build filter chips
       const box = document.getElementById('chartFilters');
       if(box && !box.dataset.ready){
         box.dataset.ready = '1';
-        box.innerHTML='';
-        // quick toggles
-        const allBtn=document.createElement('div');
-        allBtn.className='fbtn';
-        allBtn.textContent='Показать всё';
-        allBtn.onclick=()=>{ chart.data.datasets.forEach((ds,i)=>{ds.hidden=false; const c=document.querySelector(`[data-ds="${i}"]`); if(c) c.classList.remove('off');}); chart.update(); };
-        box.appendChild(allBtn);
-        const noneBtn=document.createElement('div');
-        noneBtn.className='fbtn';
-        noneBtn.textContent='Скрыть всё';
-        noneBtn.onclick=()=>{ chart.data.datasets.forEach((ds,i)=>{ds.hidden=true; const c=document.querySelector(`[data-ds="${i}"]`); if(c) c.classList.add('off');}); chart.update(); };
-        box.appendChild(noneBtn);
+        buildFilterButtons();
+      }
 
-        chart.data.datasets.forEach((ds, i)=>{
-          const b = document.createElement('div');
-          b.className = 'fbtn' + (ds.hidden?' off':'');
-          b.setAttribute('data-ds', String(i));
-          const dot=document.createElement('span');
-          dot.className='dot';
-          dot.style.color = ds.borderColor || '#2563eb';
-          const t=document.createElement('span');
-          t.textContent = ds.label;
-          b.appendChild(dot);
-          b.appendChild(t);
-          b.onclick = ()=>{
-            ds.hidden = !ds.hidden;
-            b.classList.toggle('off', !!ds.hidden);
-            chart.update();
-          };
-          box.appendChild(b);
+      // chart mode switch
+      const seg = document.getElementById('chartModeSeg');
+      if(seg && !seg.dataset.ready){
+        seg.dataset.ready = '1';
+        seg.querySelectorAll('button[data-chartmode]').forEach(btn=>{
+          btn.addEventListener('click', ()=>{
+            const m = btn.getAttribute('data-chartmode');
+            if(!m) return;
+            CHART_MODE = m;
+            seg.querySelectorAll('button').forEach(b=>b.classList.toggle('active', b===btn));
+            applyChartMode();
+          });
         });
       }
 
+      const btnShowAll = document.getElementById('btnShowAll');
+      const btnHideAll = document.getElementById('btnHideAll');
+      if(btnShowAll && !btnShowAll.dataset.ready){
+        btnShowAll.dataset.ready='1';
+        btnShowAll.onclick = ()=>{ chart.data.datasets.forEach(ds=>ds.hidden=false); syncFilterButtons(); chart.update(); };
+      }
+      if(btnHideAll && !btnHideAll.dataset.ready){
+        btnHideAll.dataset.ready='1';
+        btnHideAll.onclick = ()=>{ chart.data.datasets.forEach(ds=>ds.hidden=true); syncFilterButtons(); chart.update(); };
+      }
+
       return chart;
+    }
+
+    function buildFilterButtons(){
+      const box = document.getElementById('chartFilters');
+      if(!box) return;
+      box.innerHTML='';
+      chart.data.datasets.forEach((ds)=>{
+        const b = document.createElement('div');
+        b.className = 'fbtn' + (ds.hidden ? ' off' : '');
+        b.textContent = ds.label;
+        b.setAttribute('data-dsid', ds._id);
+        b.onclick = ()=>{
+          ds.hidden = !ds.hidden;
+          syncFilterButtons();
+          chart.update();
+        };
+        box.appendChild(b);
+      });
+      syncFilterButtons();
+    }
+
+    function syncFilterButtons(){
+      const box = document.getElementById('chartFilters');
+      if(!box) return;
+      box.querySelectorAll('.fbtn').forEach(b=>{
+        const id = b.getAttribute('data-dsid');
+        const ds = chart.data.datasets.find(d=>d._id===id);
+        if(!ds) return;
+        b.classList.toggle('off', !!ds.hidden);
+      });
+    }
+
+    function applyChartMode(){
+      if(!chart) return;
+      chart.data.datasets.forEach(ds=>{
+        if(CHART_MODE==='core') ds.hidden = !CORE_IDS.has(ds._id);
+      });
+      syncFilterButtons();
+      chart.update();
     }
 
     function setBar(id, pct){
@@ -587,78 +627,36 @@
     // Coverage: simple heuristic by presence of typical fields in the latest snapshot.
     // (We keep it simple to avoid hard-coding 600+ fields.)
     function computeCoverage(latest){
-      const asNum = (v)=>{ const n=Number(String(v??'').replace(',','.')); return Number.isFinite(n)?n:0; };
-      const has = (k)=>{
-        const v = latest?.[k];
-        if(v===0) return true;
-        if(v===null||v===undefined) return false;
-        const s=String(v).trim();
-        return s!=='' && s!=='—' && s!=='-';
-      };
-      const anyPrefix = (prefix)=> Object.keys(latest||{}).some(k=>k.startsWith(prefix) && has(k));
-      const pct = (filled,total)=> total? Math.round(100*filled/total):0;
-
-      // define blocks
-      const blocks = [];
-
-      // Interview
-      {
-        const keys=['sales_manager','presale_manager','industry','lpr','sources','envNote','riskLevelText','riskNotes'];
-        const total=keys.length;
-        const filled=keys.filter(has).length;
-        blocks.push({key:'interview', name:'Интервью', pct:pct(filled,total)});
-      }
-
-      // Infrastructure
-      {
-        const keys=['workplaces','servers','branches','vdi','closed','virt','hostingModel','adDomains','netSeg','terminalFarms','hwAge','hwAccounting','redundancy'];
-        const total=keys.length;
-        const filled=keys.filter(has).length;
-        blocks.push({key:'infra', name:'Инфраструктура', pct:pct(filled,total)});
-      }
-
-      // Pilot requirements (req_*)
-      {
-        const total=20;
-        let filled=0;
-        for(let i=1;i<=20;i++){
-          const id=String(i).padStart(2,'0');
-          if(has('req_'+id+'_text')) filled++;
+      const blocks = [
+        {key:'interview', name:'Интервью', fields:['sales_manager','presale_manager','lpr','sources','industry']},
+        {key:'infra', name:'Инфраструктура', fields:['workplaces','servers','branches','vdi','closed','hostingModel','adDomains']},
+        {key:'pilot', name:'Требования к пилоту', fields:['req_','pilot_','pilotReq','pilot_requirements']},
+        {key:'product', name:'Требования к продукту', fields:['prod_','productReq','product_requirements']},
+        {key:'finance', name:'Финансы', fields:['coiTotal','coi_total','coiLic','coiDowntime','coiLabor','recoverIndex']},
+      ];
+      const out = [];
+      for(const b of blocks){
+        let total = 0, filled = 0;
+        // If fields contain prefixes, count matching keys
+        for(const f of b.fields){
+          if(f.endsWith('_')){
+            const pref = f;
+            const keys = Object.keys(latest||{}).filter(k=>String(k).startsWith(pref));
+            total += Math.max(10, keys.length);
+            filled += keys.filter(k=>{
+              const v = latest[k];
+              return v !== undefined && v !== null && String(v).trim() !== '';
+            }).length;
+          }else{
+            total += 1;
+            const v = latest[f];
+            if(v !== undefined && v !== null && String(v).trim() !== '') filled += 1;
+          }
         }
-        blocks.push({key:'pilot', name:'Требования к пилоту', pct:pct(filled,total)});
+        const pct = total ? Math.round((filled/total)*100) : 0;
+        out.push({name:b.name, pct});
       }
-
-      // Product requirements (prodreq_*)
-      {
-        const total=20;
-        let filled=0;
-        for(let i=1;i<=20;i++){
-          const id=String(i).padStart(2,'0');
-          if(has('prodreq_'+id+'_biz') || has('prodreq_'+id+'_func')) filled++;
-        }
-        blocks.push({key:'product', name:'Требования к продукту', pct:pct(filled,total)});
-      }
-
-      // PSI (psi_01_scn etc)
-      {
-        const total=20;
-        let filled=0;
-        for(let i=1;i<=20;i++){
-          const id=String(i).padStart(2,'0');
-          if(has('psi_'+id+'_scn') || has('psi_'+id+'_exp') || has('psi_'+id+'_act')) filled++;
-        }
-        blocks.push({key:'psi', name:'ПСИ', pct:pct(filled,total)});
-      }
-
-      // Finance
-      {
-        const keys=['salary','itCount','manualPct','licBudget','unusedPct','vmUnusedPct','hwBudget','hwPlan','downtimeHours','downtimeCost','incidentsPerMonth','serviceDesk','coiTotal','coi_total_loss','coi_license_loss','coi_manual_loss','coi_downtime_loss'];
-        const total=keys.length;
-        const filled=keys.filter(has).length;
-        blocks.push({key:'finance', name:'Финансы', pct:pct(filled,total)});
-      }
-
-      return blocks;
+      return out;
     }
 
     // Arguments: pick top signals from question bank based on truthy values in latest snapshot.
@@ -673,7 +671,7 @@
     async function loadSalesRules(){
       if(Array.isArray(SALES_RULES)) return SALES_RULES;
       try{
-        const r = await fetch('sales_rules.json?v=v76', {cache:'no-store'});
+        const r = await fetch('sales_rules.json?v=v78', {cache:'no-store'});
         const j = await r.json();
         SALES_RULES = Array.isArray(j?.rules) ? j.rules : [];
       }catch(e){
@@ -699,8 +697,6 @@
     function computeSalesArguments(latest, limit=10){
       const rules = Array.isArray(SALES_RULES) ? SALES_RULES : [];
       const out=[];
-
-      // 1) rules from checklist
       for(const r of rules){
         const key = r.key;
         const v = latest ? latest[key] : undefined;
@@ -715,34 +711,7 @@
 
         if(ok) out.push({title:r.param, text:r.text});
       }
-
-      // 2) hard fallback (если чеклист не сработал / мало данных)
-      if(latest){
-        const branches = num(latest.branches);
-        const closed = normBool(latest.closed);
-        const manual = num(latest.manualPct);
-        const unused = num(latest.unusedPct);
-        const vmUnused = num(latest.vmUnusedPct);
-        const coi = num(latest.coiTotal);
-        if(Number.isFinite(coi) && coi>0) out.unshift({title:'Cost of Inaction', text:'У клиента уже есть стоимость бездействия — можно вести разговор про окупаемость и быстрый value.'});
-        if(Number.isFinite(branches) && branches>1) out.push({title:'Распределённая инфраструктура', text:'Филиалы → сложнее контролировать активы и изменения. ITМен даёт единый контур прозрачности.'});
-        if(closed) out.push({title:'Закрытый контур', text:'В закрытых контурах “ручной учёт” почти неизбежен — аргумент про автоматизацию и снижение операционных рисков.'});
-        if(Number.isFinite(manual) && manual>0) out.push({title:'Ручные операции', text:'Высокая доля ручного труда → потери времени, ошибки, зависимость от людей. Переводи в деньги через COI.'});
-        if(Number.isFinite(unused) && unused>0) out.push({title:'Неиспользуемое ПО', text:'Есть потенциал оптимизации лицензий и снижение лицензионных рисков (SAM + библиотека ПО).'});
-        if(Number.isFinite(vmUnused) && vmUnused>0) out.push({title:'Виртуальные ресурсы', text:'Оптимизация виртуалки/кластеров → быстрый возврат бюджета и “быстрые победы”.'});
-      }
-
-      // dedupe by title
-      const seen = new Set();
-      const uniq = [];
-      for(const x of out){
-        const k = String(x.title||'').trim();
-        if(!k) continue;
-        if(seen.has(k)) continue;
-        seen.add(k);
-        uniq.push(x);
-      }
-      return uniq.slice(0, limit);
+      return out.slice(0, limit);
     }
 
     function computePreSalesTips(latest){
@@ -815,11 +784,22 @@
       const items = Array.isArray(data.items) ? data.items : [];
       document.getElementById('histMeta').textContent = (items.length? (items.length+' сохранений') : 'нет данных') + (fromCache?' • кэш':'');
 
+      // Normalize + sort by timestamp so lines look like a single timeline.
+      const normItems = items.map((it, idx)=>{
+        const d = parseTs(it?.timestamp);
+        return { _idx: idx, _d: d, ...it };
+      }).sort((a,b)=>{
+        if(a._d && b._d) return a._d - b._d;
+        if(a._d && !b._d) return -1;
+        if(!a._d && b._d) return 1;
+        return a._idx - b._idx;
+      });
+
       function getTs(it, idx){
-        const t = String(it?.timestamp||'').trim();
-        if(!t) return new Date(Date.now() - (items.length-idx)*86400000);
-        const d = new Date(t);
-        return isNaN(d.getTime()) ? new Date(Date.now() - (items.length-idx)*86400000) : d;
+        const d = it?._d;
+        if(d) return d;
+        // fallback deterministic timeline
+        return new Date(Date.now() - (normItems.length-idx)*86400000);
       }
 
       function getVal(it, id){
@@ -842,11 +822,11 @@
       const c = ensureChart();
       c.data.datasets.forEach(ds=>{
         const id = ds._id;
-        ds.data = items.map((it, idx)=>({ x: getTs(it, idx), y: getVal(it, id) }));
+        ds.data = normItems.map((it, idx)=>({ x: getTs(it, idx), y: getVal(it, id) }));
       });
       c.update();
 
-      const last = (data && data.latest) ? data.latest : (items.length ? items[items.length-1] : {});
+      const last = (data && data.latest) ? data.latest : (normItems.length ? normItems[normItems.length-1] : {});
       window.__ITMEN_LAST = last;
       document.getElementById('kpiPsi').textContent = fmtPct(last.psi2Score ?? last.psi);
       document.getElementById('kpiProb').textContent = fmtPct(last.probIndex ?? last.prob);
@@ -866,6 +846,54 @@
           + '</div>';
       }).join('');
       cov.forEach((b,i)=> setBar('bar_'+i, b.pct));
+
+      // Executive snapshot: status + next actions
+      (function(){
+        const psi = Number(last.psi2Score ?? last.psi);
+        const prob = Number(last.probIndex ?? last.prob);
+        const ready = Number(last.readyIndex ?? last.ready);
+        const risk = Number(last.riskIndex ?? last.risk);
+
+        const statusEl = document.getElementById('dealStatus');
+        const nextEl = document.getElementById('dealNext');
+        if(!statusEl || !nextEl) return;
+
+        function bucket(){
+          if(isFinite(prob) && prob >= 70 && isFinite(psi) && psi >= 60) return {t:'HOT', cls:'good'};
+          if(isFinite(prob) && prob < 35) return {t:'COLD', cls:'bad'};
+          if(isFinite(risk) && risk >= 70 && isFinite(ready) && ready < 50) return {t:'RISK', cls:'warn'};
+          return {t:'WARM', cls:'warn'};
+        }
+
+        const b = bucket();
+        const clsMap = {good:'rgba(22,163,74,.12)', warn:'rgba(245,158,11,.12)', bad:'rgba(239,68,68,.12)'};
+        const brdMap = {good:'rgba(22,163,74,.30)', warn:'rgba(245,158,11,.30)', bad:'rgba(239,68,68,.30)'};
+        statusEl.style.background = clsMap[b.cls] || 'rgba(15,23,42,.04)';
+        statusEl.style.borderColor = brdMap[b.cls] || 'rgba(15,23,42,.12)';
+        statusEl.style.color = (b.cls==='bad') ? '#7f1d1d' : (b.cls==='good' ? '#14532d' : '#7c2d12');
+        statusEl.textContent = `Статус: ${b.t}`;
+
+        const sortedBlocks = [...cov].sort((a,b)=>a.pct-b.pct);
+        const gaps = sortedBlocks.slice(0,2).filter(x=>x.pct<40);
+
+        const actions=[];
+        if(gaps.length){
+          actions.push({title:'Добить данные', text:`Самые пустые блоки: ${gaps.map(g=>g.name+' '+g.pct+'%').join(', ')}. Без этого будет слабая демо‑логика и спорная оценка.`});
+        }
+        if(isFinite(risk) && risk>=60){
+          actions.push({title:'Снять риск', text:'Сфокусируйся на “серых зонах/лицензиях/ручном труде”: попроси 1–2 подтверждения по источникам и покажи быстрый value на пилоте.'});
+        }
+        if(isFinite(prob) && prob<50){
+          actions.push({title:'Поднять вероятность', text:'Зафиксируй next step: кто ЛПР, критерии успеха пилота и дата принятия решения. Без “договора о шаге” вероятность не растёт.'});
+        }
+        if(!actions.length){
+          actions.push({title:'Следующий шаг', text:'Сформируй короткий executive‑вывод: текущие цифры COI/бюджет + 2–3 риска + предложение пилота.'});
+        }
+
+        nextEl.innerHTML = actions.slice(0,3).map(a=>
+          `<div class="item"><div class="itemTitle">${escapeHtml(a.title)}</div><div class="itemText">${escapeHtml(a.text)}</div></div>`
+        ).join('');
+      })();
 
       // Conclusions (Sales / Pre‑Sales)
       renderConclusions(last);
