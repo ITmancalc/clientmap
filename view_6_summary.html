@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>ИТМен — Выводы</title>
   <script src="config.js"></script>
-  <script src="build_info.js?v=v79"></script>
+  <script src="build_info.js?v=v80"></script>
   <script src="question_bank.js"></script>
   <style>
     :root{
@@ -33,8 +33,8 @@
     a{color:inherit; text-decoration:none}
 
     .filters{display:flex; flex-wrap:wrap; gap:8px; margin:6px 0 10px}
-    .chartWrap{height:420px; width:100%; border-top:1px solid var(--line); margin-top:10px; padding-top:10px}
-    @media (max-width: 980px){ .chartWrap{height:360px;} }
+    .chartWrap{height:540px; width:100%; border-top:1px solid var(--line); margin-top:10px; padding-top:10px}
+    @media (max-width: 980px){ .chartWrap{height:420px;} }
     .fbtn{border:1px solid var(--line); background:var(--card); border-radius:999px; padding:6px 10px; font-size:12px; cursor:pointer; user-select:none}
     .fbtn.off{opacity:.45}
     .seg{display:flex; gap:8px; margin:6px 0 10px}
@@ -109,7 +109,19 @@
     .cols{display:grid; grid-template-columns:2fr 1fr; gap:12px; margin-top:12px;}
     @media (max-width: 980px){ .cols{grid-template-columns:1fr} }
     .panel{padding:12px; border:1px solid var(--line); border-radius:14px; background:#fff}
-    canvas{width:100% !important; height:290px !important;}
+    canvas{width:100% !important; height:100% !important;}
+
+    .insightsGrid{display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:12px; margin-top:10px}
+    @media (max-width: 980px){ .insightsGrid{grid-template-columns:1fr} }
+    .insCard{border:1px solid var(--line); border-radius:14px; background:#fff; padding:12px; box-shadow:0 10px 24px rgba(15,23,42,.06)}
+    .insTop{display:flex; align-items:flex-start; justify-content:space-between; gap:10px}
+    .insTitle{font-weight:950; font-size:14px; line-height:1.15}
+    .impact{font-size:11px; font-weight:900; padding:4px 8px; border-radius:999px; border:1px solid rgba(15,23,42,.12); color:var(--muted); background:rgba(15,23,42,.04); white-space:nowrap}
+    .impact.high{background:rgba(239,68,68,.10); border-color:rgba(239,68,68,.18); color:var(--bad)}
+    .impact.med{background:rgba(245,158,11,.10); border-color:rgba(245,158,11,.18); color:var(--warn)}
+    .impact.low{background:rgba(22,163,74,.10); border-color:rgba(22,163,74,.18); color:var(--good)}
+    .insBody{margin-top:8px; color:var(--muted); font-size:13px; white-space:pre-line}
+    .insFoot{margin-top:10px; font-size:12px; color:var(--muted); border-top:1px dashed rgba(15,23,42,.12); padding-top:8px}
 
     .blocks{display:flex; flex-direction:column; gap:10px}
     .blockRow{display:flex; align-items:center; justify-content:space-between; gap:10px}
@@ -272,22 +284,25 @@
             </div>
           </div>
 
-          <div class="cols" style="margin-top:12px">
-            <div class="panel">
-              <div class="sectionTitle" style="margin:0 0 8px">Заполненность блоков</div>
-              <div class="muted" style="font-size:12px; margin-bottom:10px">Упрощённая оценка по наличию ключевых полей. Требования к пилоту/продукту тут не считаем (слишком сильно зависит от шаблона).</div>
-              <div id="blocks" class="blocks"></div>
-            </div>
+          <div class="panel" style="margin-top:12px">
+            <div class="sectionTitle" style="margin:0 0 8px">Заполненность блоков</div>
+            <div class="muted" style="font-size:12px; margin-bottom:10px">Упрощённая оценка по наличию ключевых полей. Требования к пилоту/продукту тут не считаем (слишком сильно зависит от шаблона).</div>
+            <div id="blocks" class="blocks"></div>
+          </div>
 
-            <div class="panel">
-              <div class="sectionTitle" style="margin:0 0 8px">Ключевые выводы</div>
-              <div class="seg" id="modeSeg">
+          <div class="panel" style="margin-top:12px">
+            <div style="display:flex; align-items:flex-end; justify-content:space-between; gap:12px; flex-wrap:wrap">
+              <div>
+                <div class="sectionTitle" style="margin:0">Ключевые выводы и рекомендации</div>
+                <div class="muted" style="font-size:12px; margin-top:2px">Sales — аргументы по заполненным ответам (чеклист + ABM). Pre‑Sales — фокус на пилот/PSI/реализуемость.</div>
+              </div>
+              <div class="seg" id="modeSeg" style="margin:0">
                 <button type="button" data-mode="sales" class="active">Sales</button>
                 <button type="button" data-mode="presales">Pre‑Sales</button>
               </div>
-              <div class="muted" style="font-size:12px; margin-bottom:8px">Источник: чеклист сделки + ABM бизнес‑потребности (см. файлы в репо).</div>
-              <div id="args" class="list"></div>
             </div>
+
+            <div id="args" class="insightsGrid"></div>
           </div>
 
           <div class="panel" style="margin-top:12px">
@@ -732,7 +747,7 @@
         else if(cond==='lt1') ok = Number.isFinite(num(v)) && num(v)<1;
         else ok = isFilled(v);
 
-        if(ok) out.push({title:r.param || key, text:r.text || ''});
+        if(ok) out.push({title:r.param || key, text:r.text || '', key, val:v});
       }
       return out.slice(0, limit);
     }
@@ -746,10 +761,10 @@
       const reqCount = num(latest.req_count);
       const psiCount = num(latest.psi_count);
 
-      if(Number.isFinite(psi) && psi < 40) tips.push({title:'PSI низкий', text:'Проверь критические риски и добейся подтверждения данных/источников до обсуждения пилота.'});
-      if(Number.isFinite(feas) && feas < 50 && Number.isFinite(reqCount) && reqCount>0) tips.push({title:'Реализуемость требований к пилоту низкая', text:'Пересобери требования: отдели must-have от nice-to-have и согласуй критерии успеха пилота.'});
-      if(Number.isFinite(ready) && ready < 50) tips.push({title:'Готовность к пилоту низкая', text:'Сфокусируйся на доступах/источниках данных и на минимальном охвате для первого value.'});
-      if(Number.isFinite(psiCount) && psiCount==0) tips.push({title:'Нет требований к ПСИ', text:'Заполни критерии успеха пилота (что считаем “приняли/не приняли”).'});
+      if(Number.isFinite(psi) && psi < 40) tips.push({title:'PSI низкий', text:'Проверь критические риски и добейся подтверждения данных/источников до обсуждения пилота.', key:'psi2Score', val:psi});
+      if(Number.isFinite(feas) && feas < 50 && Number.isFinite(reqCount) && reqCount>0) tips.push({title:'Реализуемость требований к пилоту низкая', text:'Пересобери требования: отдели must-have от nice-to-have и согласуй критерии успеха пилота.', key:'feasScore', val:feas});
+      if(Number.isFinite(ready) && ready < 50) tips.push({title:'Готовность к пилоту низкая', text:'Сфокусируйся на доступах/источниках данных и на минимальном охвате для первого value.', key:'readyIndex', val:ready});
+      if(Number.isFinite(psiCount) && psiCount==0) tips.push({title:'Нет требований к ПСИ', text:'Заполни критерии успеха пилота (что считаем “приняли/не приняли”).', key:'psi_count', val:psiCount});
 
       return tips;
     }
@@ -831,28 +846,42 @@
         box.appendChild(empty);
         return;
       }
-      for(const it of items){
-        const row=document.createElement('div');
-        row.className='li';
-        row.innerHTML = `<div style="font-weight:800">${escapeHtml(it.title||'')}</div><div class="muted" style="margin-top:4px; white-space:pre-line">${escapeHtml(it.text||'')}</div>`;
-        box.appendChild(row);
-      }
 
-      if(abmItems.length){
-        const sep=document.createElement('div');
-        sep.style.height='1px'; sep.style.background='var(--line)'; sep.style.margin='12px 0';
-        box.appendChild(sep);
-        const h=document.createElement('div');
-        h.style.fontWeight='900'; h.style.marginBottom='8px';
-        h.textContent='ABM: активные бизнес‑потребности';
-        box.appendChild(h);
-        for(const it of abmItems.slice(0,8)){
-          const row=document.createElement('div');
-          row.className='li';
-          row.innerHTML = `<div style="font-weight:800">${escapeHtml(it.title||'')}</div><div class="muted" style="margin-top:4px; white-space:pre-line">${escapeHtml(it.text||'')}</div>`;
-          box.appendChild(row);
-        }
-      }
+      const inferImpact = (t, txt) => {
+        const s = (t+' '+(txt||'')).toLowerCase();
+        if(s.includes('cost') || s.includes('coi') || s.includes('просто') || s.includes('лиценз') || s.includes('бюджет') || s.includes('потер')) return 'high';
+        if(s.includes('ps i') || s.includes('psi') || s.includes('риск') || s.includes('вероят')) return 'med';
+        return 'low';
+      };
+      const fmtBasis = (k, v) => {
+        if(!k) return '';
+        if(v==null || v==='') return String(k);
+        if(typeof v==='number') return `${k} = ${Math.round(v*100)/100}`;
+        const str = String(v);
+        return `${k} = ${str.length>80 ? (str.slice(0,77)+'…') : str}`;
+      };
+
+      const renderCard = (it, tagLabel=null) => {
+        const impact = inferImpact(it.title||'', it.text||'');
+        const card = document.createElement('div');
+        card.className = 'insCard';
+        const basis = fmtBasis(it.key, it.val);
+        card.innerHTML = `
+          <div class="insTop">
+            <div class="insTitle">${escapeHtml(it.title||'')}</div>
+            <div style="display:flex; gap:8px; align-items:center">
+              ${tagLabel ? `<span class="impact" title="Источник">${escapeHtml(tagLabel)}</span>` : ''}
+              <span class="impact ${impact}">${impact==='high'?'High':impact==='med'?'Medium':'Low'}</span>
+            </div>
+          </div>
+          <div class="insBody">${escapeHtml(it.text||'')}</div>
+          ${basis ? `<div class="insFoot">Основание: <b>${escapeHtml(basis)}</b></div>` : ''}
+        `;
+        box.appendChild(card);
+      };
+
+      for(const it of items) renderCard(it, CURRENT_MODE==='presales' ? 'Pre‑Sales' : 'Sales');
+      for(const it of abmItems.slice(0,8)) renderCard(it, 'ABM');
     }
 
 
