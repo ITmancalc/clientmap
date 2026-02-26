@@ -3,6 +3,8 @@
 <head>
     <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' https: data:; connect-src 'self' https://script.google.com https://script.googleusercontent.com; img-src 'self' data: https:; frame-src https://script.google.com https://script.googleusercontent.com;">
 <script src="config.js"></script>
+<script src="build_info.js?v=v70"></script>
+<script src="question_bank.js"></script>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>PSI Control Center</title>
@@ -196,7 +198,211 @@
     .miniRow{display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-top:6px}
     .miniStat{font-size:12px; color:var(--muted)}
     .miniStat b{color:var(--text)}
-  </style>
+  
+.benchWrap{display:none!important;}
+/* === v41 unified width + floating company dropdown === */
+:root{--content-max:1120px;}
+.container{max-width:none !important;}
+/* center ALL major blocks (including grids/tables) inside the padded container */
+.container > .header,
+.container > .grid,
+.container > .card,
+.container > .section,
+.container > section,
+.container > .tableWrap,
+.container > .block,
+.container > .hr,
+.container > .divider{
+  max-width:var(--content-max) !important;
+  margin-left:auto !important;
+  margin-right:auto !important;
+  width:100% !important;
+}
+/* safety: keep inner wide wrappers constrained */
+.wide, .wideWrap, .wideSection, .contentWide, .fullWidthBlock{
+  max-width:var(--content-max) !important;
+  margin-left:auto !important;
+  margin-right:auto !important;
+  width:100% !important;
+}
+/* tables should not force horizontal scroll unless truly necessary */
+.tableWrap{overflow-x:auto;}
+
+.companySuggestDropdown{z-index:999999 !important;}
+
+
+
+/* v43b: hard unify width for passport + nested blocks (some blocks are not direct children) */
+#cardPassport,
+#passportCard,
+.cardPassport,
+.passportRow,
+.passportWrap,
+.passportExtra,
+.passportBlock,
+.container #cardPassport,
+.container #passportCard,
+.container .cardPassport,
+.container .passportRow,
+.container .passportWrap,
+.container .passportExtra,
+.container .passportBlock{
+  max-width:var(--content-max) !important;
+  width:100% !important;
+  margin-left:auto !important;
+  margin-right:auto !important;
+}
+
+
+
+/* UNIFIED_WIDTH_FIX_V44 */
+/* Make all top-level blocks align perfectly under each other */
+:root{ --pageMax: 1120px; }
+.kpiBar{ max-width: var(--pageMax); margin-left:auto; margin-right:auto; }
+.container > .card,
+.container > section,
+.container > .section,
+.container > .tableWrap,
+.container > .block,
+.container > .blockWrap,
+.container > .formSection{
+  max-width: var(--pageMax);
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+}
+/* allow dropdowns to overlay next blocks */
+.card, .section, .tableWrap{ overflow: visible; }
+
+/* Dock collapse */
+.dockHeader{display:flex;align-items:center;justify-content:space-between;gap:10px}
+body.dockCollapsed .quickDock .dockHeader{flex-direction:column;justify-content:flex-start;align-items:center;gap:8px;padding-top:8px}
+body.dockCollapsed .quickDock .dockTitle{width:100%;text-align:center;font-weight:700;font-size:14px;line-height:1.1;white-space:normal}
+body.dockCollapsed .quickDock .dockToggle{width:44px;height:34px;border-radius:12px;padding:0;display:flex;align-items:center;justify-content:center}
+.dockToggle{border:1px solid rgba(0,0,0,.08);background:#fff;border-radius:10px;padding:6px 10px;cursor:pointer;font-weight:700;line-height:1;box-shadow:0 6px 20px rgba(0,0,0,.06)}
+.dockToggle:hover{transform:translateY(-1px)}
+/* --- QuickDock collapsed: icon-only, clean spacing --- */
+body.dockCollapsed .quickDock{width:86px !important; overflow:hidden !important}
+body.dockCollapsed .quickDock .dockSearchWrap,
+body.dockCollapsed .quickDock .dockTitle:not(.dockHeader .dockTitle),
+body.dockCollapsed .quickDock .dockDesc,
+body.dockCollapsed .quickDock .dockToolsTitle,
+body.dockCollapsed .quickDock .dockItemText,
+body.dockCollapsed .quickDock .dockItemSub{display:none !important}
+body.dockCollapsed .quickDock .dockCard{padding:12px !important}
+body.dockCollapsed .quickDock .dockToolBtn{justify-content:center !important}
+body.dockCollapsed .quickDock .dockToolBtn .dockIcon{margin-right:0 !important}
+
+/* tools: single column, only icon */
+body.dockCollapsed .quickDock .toolGrid{grid-template-columns:1fr !important; gap:10px !important}
+body.dockCollapsed .quickDock a.tool{justify-content:center !important; padding:10px !important; gap:0 !important}
+body.dockCollapsed .quickDock a.tool > div:not(.tIcon){display:none !important}
+body.dockCollapsed .quickDock a.tool .tName,
+body.dockCollapsed .quickDock a.tool .tDesc{display:none !important}
+body.dockCollapsed .quickDock a.tool .tIcon{margin:0 !important; width:42px !important; height:42px !important; display:flex !important; align-items:center !important; justify-content:center !important; border-radius:14px !important}
+
+
+/* Dock collapse (v2) */
+.quickDock a.tool{display:flex;align-items:center;gap:10px}
+.quickDock a.tool .toolIcon{flex:0 0 auto;width:28px;height:28px;display:flex;align-items:center;justify-content:center;border-radius:10px;background:rgba(0,0,0,.04)}
+.quickDock a.tool .toolText{display:flex;flex-direction:column;gap:2px}
+.quickDock a.tool .toolText small{opacity:.7}
+body.dockCollapsed .quickDock .dockTitle{display:none !important}
+body.dockCollapsed .quickDock .dockHeader .dockTitle{display:block !important}
+body.dockCollapsed .quickDock a.tool{justify-content:center !important}
+body.dockCollapsed .quickDock a.tool .toolText{display:none !important}
+
+
+
+  /* Dock expanded state must look like the original (wide, with text) */
+  body:not(.dockCollapsed) .quickDock{ width:320px !important; max-width:320px !important; }
+  body:not(.dockCollapsed) .quickDock .dockTitle{ white-space:nowrap; }
+  body:not(.dockCollapsed) .quickDock a.tool{ flex-direction:row; justify-content:flex-start; }
+  body:not(.dockCollapsed) .quickDock a.tool .tIcon{ margin-right:10px; }
+
+</style>
+
+<style id="unifiedWidthAndDropdownFix">
+/* BUILD v60: unify content width across blocks + fix company dropdown clipping */
+:root{
+  --dockW: 340px;
+  --contentW: 1120px;
+  --pagePad: 24px;
+}
+
+/* Keep overall page layout (dock on left) but make ALL content blocks одинаковой ширины */
+.container{
+  max-width: calc(var(--dockW) + var(--contentW) + (var(--pagePad) * 2));
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Every direct block in the main column has the same width and left edge */
+.container > header,
+.container > .card,
+.container > section,
+.container > div{
+  max-width: var(--contentW);
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Don’t accidentally constrain the left dock itself */
+
+/* Tables should not create horizontal page scroll; scroll only inside table card */
+.tableWrap{ overflow-x:auto; }
+
+/* Fix: company suggestions were hidden under card due to overflow:hidden */
+.card{ overflow: visible; }
+.dockSearchWrap{ overflow: visible; }
+.companySuggest{ z-index: 99999; }
+
+ (max-width: 1180px){
+  :root{ --dockW: 0px; --contentW: 980px; }
+  .container{ max-width:none; margin:0; }
+  .container{ padding-left: 24px; }
+}
+
+/* === FORCE unified content width + alignment (v45) === */
+:root{
+  --contentW: 1120px;
+  --contentPad: 22px;
+}
+.container{
+  max-width: var(--contentW) !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+.card, .section, .block, .panel, .kpiBar, .heatWrap, .tableWrap, .table-card, .grid, .grid2, .grid3, .wide, .content, .contentWrap{
+  width: 100% !important;
+  max-width: 100% !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+#passportCard, #passportProject, .passportCard, .passport-project, .passport, .project-passport{
+  width: 100% !important;
+  max-width: 100% !important;
+}
+.center, .centerRow, .passportWrap, .passportRow, .rowCenter{
+  justify-content: flex-start !important;
+}
+.searchWrap, .companySearch, .company-search, .quickSearch, .fastSearch, .inputWrap{
+  position: relative !important;
+  overflow: visible !important;
+  z-index: 50 !important;
+}
+.suggestions, .dropdown, .autocomplete, .companyList, .suggestList{
+  position: absolute !important;
+  z-index: 9999 !important;
+}
+.card, .section, .block, .panel{
+  overflow: visible !important;
+}
+
+</style>
 </head>
 <body>
   <div class="wrap">
@@ -231,24 +437,27 @@
             <div class="miniStat"><b id="miniUpd">—</b> обновлено (МСК)</div>
           </div>
           <div class="miniRow" style="margin-top:10px">
-            <a class="btn secondary" id="openFullBtn" href="view_5_full.html">Открыть полную карту</a>
-            <a class="btn ghost" id="openInterviewBtn" href="view_2_interview.html">Интервью</a>
+            <a class="btn secondary" id="openFullBtn" href="view_5_full.html?v=60">Открыть полную карту</a>
+            <a class="btn ghost" id="openInterviewBtn" href="view_2_interview.html?v=60">Интервью</a>
           </div>
           <div class="miniRow" style="margin-top:8px">
-            <a class="btn ghost" id="openIndicesBtn" href="view_1_indices.html">Индексы</a>
-            <a class="btn ghost" id="openReqBtn" href="view_3_requirements.html">Требования</a>
-            <a class="btn ghost" id="openPsiBtn" href="view_4_psi.html">ПСИ</a>
+            <a class="btn ghost" id="openIndicesBtn" href="view_1_indices.html?v=60">Индексы</a>
+            <a class="btn ghost" id="openReqBtn" href="view_3_requirements.html?v=60">Требования</a>
+            <a class="btn ghost" id="openProdBtn" href="view_3b_product.html?v=60">Продукт</a>
+            <a class="btn ghost" id="openPsiBtn" href="view_4_psi.html?v=60">ПСИ</a>
           </div>
         </div>
 
         <div style="height:12px"></div>
         <div class="sectionTitle">Инструменты</div>
         <div class="toolGrid">
-          <a class="tool" href="view_1_indices.html"><div class="tIcon">📊</div><div><div class="tName">Индексы и риски</div><div class="tDesc">борд итогов</div></div></a>
-          <a class="tool" href="view_2_interview.html"><div class="tIcon">🎯</div><div><div class="tName">Интервью (1–3)</div><div class="tDesc">быстро/глубоко</div></div></a>
-          <a class="tool" href="view_3_requirements.html"><div class="tIcon">🧪</div><div><div class="tName">Требования к пилоту</div><div class="tDesc">раздел 4</div></div></a>
-          <a class="tool" href="view_4_psi.html"><div class="tIcon">📈</div><div><div class="tName">ПСИ</div><div class="tDesc">раздел 5</div></div></a>
-          <a class="tool" href="view_5_full.html"><div class="tIcon">📄</div><div><div class="tName">Полная карта</div><div class="tDesc">всё целиком</div></div></a>
+          <a class="tool" href="view_1_indices.html?v=60"><div class="tIcon">📊</div><div><div class="tName">Индексы и риски</div><div class="tDesc">борд итогов</div></div></a>
+          <a class="tool" href="view_2_interview.html?v=60"><div class="tIcon">🎯</div><div><div class="tName">Интервью (1–3)</div><div class="tDesc">быстро/глубоко</div></div></a>
+          <a class="tool" href="view_3_requirements.html?v=60"><div class="tIcon">🧪</div><div><div class="tName">Требования к пилоту</div><div class="tDesc">раздел 4</div></div></a>
+          <a class="tool" href="view_3b_product.html?v=60"><div class="tIcon">🧩</div><div><div class="tName">Требования к продукту</div><div class="tDesc">раздел 6</div></div></a>
+          <a class="tool" href="view_4_psi.html?v=60"><div class="tIcon">📈</div><div><div class="tName">ПСИ</div><div class="tDesc">раздел 5</div></div></a>
+          <a class="tool" href="view_5_full.html?v=60"><div class="tIcon">📄</div><div><div class="tName">Полная карта</div><div class="tDesc">всё целиком</div></div></a>
+          <a class="tool" href="view_6_summary.html?v=72"><div class="tIcon">🧠</div><div><div class="tName">Выводы</div><div class="tDesc">динамика + заполненность + аргументы</div></div></a>
         </div>
         </div>
 
@@ -499,6 +708,7 @@ console.log("✅ Using Google Sheets WebApp URL:", WEBAPP_URL);
         document.getElementById("openInterviewBtn").href = "view_2_interview.html"+qs;
         document.getElementById("openIndicesBtn").href = "view_1_indices.html"+qs;
         document.getElementById("openReqBtn").href = "view_3_requirements.html"+qs;
+        document.getElementById("openProdBtn").href = "view_3b_product.html"+qs;
         document.getElementById("openPsiBtn").href = "view_4_psi.html"+qs;
 
         miniCRM.style.display="block";
@@ -570,11 +780,11 @@ console.log("✅ Using Google Sheets WebApp URL:", WEBAPP_URL);
     }
     function pickLatestPerCompany(data){
       // Prefer server-provided arrays if present
-      const cand = data.latestByCompany || data.latest_by_company || data.perCompany || data.companiesLatest || data.company_latest || data.companies_latest;
+      const cand = data.latestByCompany || data.latest_by_company || data.perCompany || data.companiesLatest || data.company_latest || data.companies_latest || data.latest_records || data.latestRecords;
       if(Array.isArray(cand) && cand.length) return cand;
 
       // Fallback: if server sends raw runs list, group by company+timestamp
-      const runs = data.runs || data.items || data.rows || data.all || data.data;
+      const runs = (Array.isArray(data.runs)?data.runs:null) || data.items || data.rows || data.all || data.data || data.latest_records || data.latestRecords;
       if(Array.isArray(runs) && runs.length){
         const m = new Map();
         for(const r of runs){
@@ -810,5 +1020,208 @@ function syncToGoogleSheets(){
 
 </script>
 
+
+<script>
+(function(){
+  try{
+    window.BUILD_VERSION = "v62";
+    // Update any build badges if present
+    const badge = document.querySelector('#buildBadge, .buildBadge, [data-build-badge]');
+    if(badge) badge.textContent = "BUILD v62";
+    console.log("✅ BUILD v62 loaded");
+  }catch(_){}
+  const _id = (x)=>document.getElementById(x);
+
+  // Required validation: ONLY company is required
+  window.validateRequired = window.validateRequired || function(){
+    const c = _id('company') || _id('dockCompany');
+    return !!(c && String(c.value||'').trim());
+  };
+
+  // Some pages call setMode(); keep it as a safe no-op (mode toggles handled elsewhere)
+  window.setMode = window.setMode || function(){};
+
+  // Fallback payload builder: collect all fields by id (unknown keys are ignored by Sheets writer)
+  function fallbackPayload(){
+    const obj = {};
+    document.querySelectorAll('input,select,textarea').forEach(el=>{
+      if(!el || !el.id) return;
+      if(el.disabled) return;
+      const t = (el.type||'').toLowerCase();
+      if(t === 'radio'){
+        if(!el.checked) return;
+        obj[el.name || el.id] = el.value;
+        return;
+      }
+      if(t === 'checkbox'){
+        obj[el.id] = el.checked ? 'да' : 'нет';
+        return;
+      }
+      obj[el.id] = el.value;
+    });
+    // ensure company key exists
+    if(!obj.company){
+      const c = _id('company') || _id('dockCompany');
+      if(c && String(c.value||'').trim()) obj.company = String(c.value||'').trim();
+    }
+    return obj;
+  }
+
+  // Make buildSheetPayloadExact safe
+  if(typeof window.buildSheetPayloadExact === 'function'){
+    const _orig = window.buildSheetPayloadExact;
+    window.buildSheetPayloadExact = function(){
+      try{
+        return _orig();
+      }catch(e){
+        console.warn("buildSheetPayloadExact failed → using fallback payload", e);
+        return fallbackPayload();
+      }
+    };
+  } else {
+    window.buildSheetPayloadExact = fallbackPayload;
+  }
+
+  // Make recalc safe (must not block save/excel)
+  if(typeof window.recalc === 'function' && typeof window.safeRecalc !== 'function'){
+    window.safeRecalc = function(){
+      try{ return window.recalc(); }
+      catch(e){ console.warn("recalc failed (ignored)", e); return null; }
+    };
+  }
+
+  // Patch recalc button handlers (if any) to use safeRecalc then sync
+  if(typeof window.handleRecalcClick === 'function'){
+    const _h = window.handleRecalcClick;
+    window.handleRecalcClick = function(ev){
+      try{
+        if(typeof window.safeRecalc === 'function') window.safeRecalc();
+        return _h(ev);
+      }catch(e){
+        console.warn("handleRecalcClick failed", e);
+      }
+    };
+  }
+
+  // Ensure Excel export doesn't crash due to recalc
+  if(typeof window.exportExcel === 'function'){
+    const _ex = window.exportExcel;
+    window.exportExcel = function(){
+      try{ if(typeof window.safeRecalc === 'function') window.safeRecalc(); }catch(_){}
+      return _ex.apply(this, arguments);
+    };
+  }
+})();
+</script>
+
+<script>
+/* HOTFIX v64: run_id/timestamp + missing helpers guard (all pages) */
+(function(){
+  try{
+    // 1) Ensure SHEET_KEYS contains meta columns
+    if(Array.isArray(window.SHEET_KEYS)){
+      if(!window.SHEET_KEYS.includes('run_id')) window.SHEET_KEYS.unshift('run_id');
+      if(!window.SHEET_KEYS.includes('timestamp')) window.SHEET_KEYS.unshift('timestamp');
+    }
+
+    // 2) Meta generators
+    function genRunId(){
+      const r = Math.random().toString(36).slice(2,10);
+      return 'run_' + Date.now() + '_' + r;
+    }
+    function isoNow(){
+      return new Date().toISOString();
+    }
+
+    function ensureMetaOnRow(row){
+      if(!row || typeof row !== 'object') return row;
+      if(!row.run_id) row.run_id = genRunId();
+      if(!row.timestamp) row.timestamp = isoNow();
+      return row;
+    }
+
+    // 3) Patch buildSheetPayloadExact to always include meta
+    if(typeof window.buildSheetPayloadExact === 'function'){
+      const origBuild = window.buildSheetPayloadExact;
+      window.buildSheetPayloadExact = function(){
+        const p = origBuild.apply(this, arguments);
+        // expected shape: {sheet_name, row}
+        if(p && typeof p === 'object'){
+          if(p.row && typeof p.row === 'object') ensureMetaOnRow(p.row);
+          else ensureMetaOnRow(p);
+        }
+        return p;
+      };
+    }
+
+    // 4) Guard missing helpers so recalc/save/export never crashes
+    if(typeof window.validateRequired !== 'function'){
+      window.validateRequired = function(){ return true; };
+    }
+    if(typeof window.setMode !== 'function'){
+      window.setMode = function(){ /* noop */ };
+    }
+    if(typeof window.computeCriticality !== 'function'){
+      window.computeCriticality = function(){ return { criticality: 0, label: '—' }; };
+    }
+    if(typeof window.maturityLevel !== 'function'){
+      window.maturityLevel = function(v){
+        const n = Number(v);
+        if(!isFinite(n)) return { level: '—', score: 0 };
+        if(n >= 0.66) return { level: 'Высокая', score: n };
+        if(n >= 0.33) return { level: 'Средняя', score: n };
+        return { level: 'Низкая', score: n };
+      };
+    }
+
+    // 5) If syncToGoogleSheets exists, ensure meta before sending (defensive)
+    if(typeof window.syncToGoogleSheets === 'function'){
+      const origSync = window.syncToGoogleSheets;
+      window.syncToGoogleSheets = async function(){
+        try{
+          if(typeof window.buildSheetPayloadExact === 'function'){
+            const p = window.buildSheetPayloadExact();
+            if(p && p.row) ensureMetaOnRow(p.row);
+          }
+        }catch(e){ /* ignore */ }
+        return origSync.apply(this, arguments);
+      };
+    }
+
+  }catch(e){
+    console.warn('HOTFIX v64 failed to apply', e);
+  }
+})();
+</script>
 </body>
 </html>
+
+<script>
+// ===== v60 FIX: missing helpers used by recalc/export/sync =====
+function clamp(n, a, b){ n=Number(n); if(!isFinite(n)) return a; return Math.max(a, Math.min(b, n)); }
+function maturityLevel(avg){
+  avg = Number(avg); if(!isFinite(avg)) return "—";
+  if(avg < 40) return "Низкая";
+  if(avg < 70) return "Средняя";
+  return "Высокая";
+}
+function computeCriticality(lossTotal, riskIndex, maturityAvg){
+  // lossTotal may be in money; convert to a 0-100 signal using log scaling.
+  const loss = Number(lossTotal);
+  const lossScore = isFinite(loss) && loss>0 ? clamp((Math.log10(loss+1)/7)*100, 0, 100) : 0; // ~ up to 10^7
+  const r = clamp(riskIndex, 0, 100);
+  const m = clamp(maturityAvg, 0, 100);
+  // higher risk + higher loss + lower maturity => higher criticality
+  const crit = 0.45*lossScore + 0.35*r + 0.20*(100-m);
+  return Math.round(clamp(crit, 0, 100));
+}
+function criticalityLabel(crit){
+  crit = Number(crit); if(!isFinite(crit)) return "—";
+  if(crit < 30) return "Низкая";
+  if(crit < 60) return "Средняя";
+  if(crit < 80) return "Высокая";
+  return "Критическая";
+}
+
+
+</script>

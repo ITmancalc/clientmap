@@ -1,0 +1,588 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' https: data:; connect-src 'self' https://script.google.com https://script.googleusercontent.com; img-src 'self' data: https:; frame-src https://script.google.com https://script.googleusercontent.com;">
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>ИТМен — Выводы</title>
+  <script src="config.js"></script>
+  <script src="build_info.js?v=v73"></script>
+  <script src="question_bank.js"></script>
+  <style>
+    :root{
+      --bg:#f6f7fb;
+      --card:#ffffff;
+      --text:#0b1220;
+      --muted:#5b6475;
+      --line:rgba(15,23,42,.12);
+      --shadow:0 12px 30px rgba(15,23,42,.06);
+      --radius:16px;
+      --accent:#ef4444;
+      --accent2:#2563eb;
+      --good:#16a34a;
+      --warn:#f59e0b;
+      --bad:#ef4444;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Noto Sans", "Helvetica Neue", sans-serif;
+      background:var(--bg);
+      color:var(--text);
+    }
+    a{color:inherit; text-decoration:none}
+    .wrap{max-width:1280px; margin:24px auto; padding:0 16px 32px;}
+    header{display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:16px;}
+    .h1{font-size:22px; font-weight:900; letter-spacing:.2px}
+    .sub{margin-top:4px; color:var(--muted); font-size:13px}
+    .chip{
+      background:var(--card); border:1px solid var(--line); border-radius:999px;
+      padding:8px 10px; display:flex; gap:8px; align-items:center; box-shadow:var(--shadow);
+      font-size:13px; color:var(--muted);
+    }
+    .chip b{color:var(--text)}
+
+    .grid{display:grid; grid-template-columns:340px 1fr; gap:16px; align-items:start;}
+    @media (max-width: 980px){ .grid{grid-template-columns:1fr} }
+
+    .card{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow);}
+    .pad{padding:14px}
+    .sectionTitle{font-weight:900; font-size:14px; margin:0 0 10px}
+    .muted{color:var(--muted)}
+
+    /* Search */
+    .searchWrap{position:relative}
+    .icon{position:absolute; left:12px; top:50%; transform:translateY(-50%); opacity:.7}
+    .search{
+      width:100%; border:1px solid var(--line); background:#f2f4f8;
+      padding:11px 12px 11px 38px; border-radius:12px; outline:none; font-size:14px;
+    }
+    .btn{
+      background:var(--accent); color:white; border:none;
+      padding:10px 12px; border-radius:12px; font-weight:900;
+      cursor:pointer; white-space:nowrap;
+    }
+    .btn.secondary{background:#0b1220}
+    .btn.ghost{background:#fff; color:#0b1220; border:1px solid var(--line)}
+    .btn:disabled{opacity:.55; cursor:not-allowed}
+
+    .suggest{
+      margin-top:8px; border:1px solid var(--line); border-radius:12px;
+      overflow:hidden; display:none; background:white;
+    }
+    .sItem{padding:10px 12px; border-top:1px solid rgba(15,23,42,.06); cursor:pointer;
+      display:flex; justify-content:space-between; gap:10px; align-items:center;}
+    .sItem:first-child{border-top:none}
+    .sName{font-weight:900}
+    .sMeta{font-size:12px; color:var(--muted)}
+    .badge{font-size:12px; font-weight:900; padding:4px 8px; border-radius:999px;
+      background:rgba(37,99,235,.10); color:var(--accent2); border:1px solid rgba(37,99,235,.18); white-space:nowrap;}
+
+    /* Tools */
+    .toolGrid{display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:10px;}
+    .tool{padding:12px; border:1px solid var(--line); border-radius:14px; background:#fff;
+      display:flex; gap:10px; align-items:flex-start; transition:.12s transform ease, .12s box-shadow ease;}
+    .tool:hover{transform:translateY(-1px); box-shadow:0 10px 24px rgba(15,23,42,.08)}
+    .tool.active{border-color:rgba(37,99,235,.35); box-shadow:0 10px 24px rgba(37,99,235,.10)}
+    .tIcon{width:28px; height:28px; border-radius:10px; display:flex; align-items:center; justify-content:center;
+      background:rgba(239,68,68,.12); border:1px solid rgba(239,68,68,.18);}
+    .tName{font-weight:900; font-size:13px; line-height:1.15}
+    .tDesc{font-size:12px; color:var(--muted); margin-top:3px}
+
+    /* Main */
+    .summaryTop{display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:12px;}
+    @media (max-width: 980px){ .summaryTop{grid-template-columns:1fr} }
+    .kpi{padding:12px 12px 10px; border:1px solid var(--line); border-radius:14px; background:#fff;}
+    .kpiVal{font-size:20px; font-weight:950}
+    .kpiLbl{font-size:12px; color:var(--muted); margin-top:2px}
+
+    .cols{display:grid; grid-template-columns:2fr 1fr; gap:12px; margin-top:12px;}
+    @media (max-width: 980px){ .cols{grid-template-columns:1fr} }
+    .panel{padding:12px; border:1px solid var(--line); border-radius:14px; background:#fff}
+    canvas{width:100% !important; height:290px !important;}
+
+    .blocks{display:flex; flex-direction:column; gap:10px}
+    .blockRow{display:flex; align-items:center; justify-content:space-between; gap:10px}
+    .bar{height:8px; border-radius:999px; background:rgba(15,23,42,.08); overflow:hidden; border:1px solid rgba(15,23,42,.10); flex:1}
+    .bar>div{height:100%; width:0%; background:rgba(37,99,235,.75)}
+    .pct{font-size:12px; color:var(--muted); min-width:48px; text-align:right}
+
+    .list{display:flex; flex-direction:column; gap:10px}
+    .item{padding:10px 12px; border:1px solid var(--line); border-radius:14px; background:#fff}
+    .itemTitle{font-weight:950; font-size:13px}
+    .itemText{font-size:13px; color:var(--muted); margin-top:4px; line-height:1.35}
+    .pillTag{display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:900;
+      padding:4px 8px; border-radius:999px; border:1px solid var(--line); background:#fafbff; color:var(--muted)}
+
+    .hintErr{
+      margin-top:10px; padding:10px 12px; border-radius:12px;
+      border:1px dashed rgba(239,68,68,.35); background:rgba(239,68,68,.06);
+      color:#7f1d1d; font-size:13px; display:none;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div>
+        <div class="h1">ИТМен — Выводы</div>
+        <div class="sub">Динамика индексов, заполненность блоков, ключевые аргументы для продажи — по выбранной компании.</div>
+      </div>
+      <div class="chip"><span>Источник:</span><b id="gsUrlLabel">не задан</b></div>
+    </header>
+
+    <div class="grid">
+      <!-- Left sidebar -->
+      <div class="card">
+        <div class="pad">
+          <div class="sectionTitle">Быстрый вход</div>
+          <div class="searchWrap">
+            <div class="icon">🔎</div>
+            <input id="companyInput" class="search" placeholder="Введите компанию (начните печатать…)" autocomplete="off"/>
+          </div>
+          <div style="display:flex; gap:10px; margin-top:10px; flex-wrap:wrap">
+            <button id="btnLoad" class="btn" style="flex:1">Загрузить</button>
+            <button id="btnReset" class="btn ghost" title="Сбрасывает локальный кэш выбранной компании">Сброс</button>
+          </div>
+          <div id="suggestBox" class="suggest" role="listbox"></div>
+          <div id="errBox" class="hintErr"></div>
+        </div>
+
+        <div class="pad" style="border-top:1px solid var(--line)">
+          <div class="sectionTitle">Инструменты</div>
+          <div class="toolGrid">
+            <a class="tool" href="index.html">
+              <div class="tIcon">🏠</div>
+              <div>
+                <div class="tName">Дашборд</div>
+                <div class="tDesc">PSI Control Center</div>
+              </div>
+            </a>
+            <a class="tool" id="openIndices" href="view_1_indices.html">
+              <div class="tIcon">📊</div>
+              <div>
+                <div class="tName">Индексы</div>
+                <div class="tDesc">итоги</div>
+              </div>
+            </a>
+            <a class="tool" id="openInterview" href="view_2_interview.html">
+              <div class="tIcon">🎯</div>
+              <div>
+                <div class="tName">Интервью</div>
+                <div class="tDesc">1–3</div>
+              </div>
+            </a>
+            <a class="tool" id="openPilot" href="view_3_requirements.html">
+              <div class="tIcon">🧪</div>
+              <div>
+                <div class="tName">Пилот</div>
+                <div class="tDesc">раздел 4</div>
+              </div>
+            </a>
+            <a class="tool" id="openProduct" href="view_3b_product.html">
+              <div class="tIcon">🧩</div>
+              <div>
+                <div class="tName">Продукт</div>
+                <div class="tDesc">раздел 6</div>
+              </div>
+            </a>
+            <a class="tool" id="openPsi" href="view_4_psi.html">
+              <div class="tIcon">🧷</div>
+              <div>
+                <div class="tName">ПСИ</div>
+                <div class="tDesc">раздел 5</div>
+              </div>
+            </a>
+            <a class="tool" id="openFull" href="view_5_full.html">
+              <div class="tIcon">📋</div>
+              <div>
+                <div class="tName">Полная карта</div>
+                <div class="tDesc">всё целиком</div>
+              </div>
+            </a>
+            <a class="tool active" href="view_6_summary.html">
+              <div class="tIcon">✅</div>
+              <div>
+                <div class="tName">C‑level вывод</div>
+                <div class="tDesc">итоги по компании</div>
+              </div>
+            </a>
+          </div>
+          <div class="sub" style="margin-top:12px">Подсказка: выбирай компанию — ссылки слева автоматически подставят параметр <span style="font-family:ui-monospace">?company=...</span>.</div>
+        </div>
+      </div>
+
+      <!-- Main -->
+      <div class="card">
+        <div class="pad">
+          <div class="sectionTitle">Аналитика по компании</div>
+          <div class="summaryTop">
+            <div class="kpi"><div class="kpiVal" id="kpiPsi">—</div><div class="kpiLbl">PSI (последний)</div></div>
+            <div class="kpi"><div class="kpiVal" id="kpiProb">—</div><div class="kpiLbl">Вероятность (последняя)</div></div>
+            <div class="kpi"><div class="kpiVal" id="kpiCOI">—</div><div class="kpiLbl">Cost of Inaction (₽/год)</div></div>
+            <div class="kpi"><div class="kpiVal" id="kpiBudget">—</div><div class="kpiLbl">Оценка проекта (₽)</div></div>
+          </div>
+
+          <div class="cols">
+            <div class="panel">
+              <div style="display:flex; justify-content:space-between; gap:10px; align-items:flex-end; margin-bottom:8px; flex-wrap:wrap">
+                <div>
+                  <div class="sectionTitle" style="margin:0">Динамика индексов</div>
+                  <div class="muted" style="font-size:12px">По сохранениям в Google Sheets (история строк).</div>
+                </div>
+                <div class="pillTag" id="histMeta">—</div>
+              </div>
+              <canvas id="idxChart"></canvas>
+            </div>
+            <div class="panel">
+              <div class="sectionTitle" style="margin:0 0 8px">Заполненность блоков</div>
+              <div id="blocks" class="blocks"></div>
+              <div style="height:12px"></div>
+              <div class="sectionTitle" style="margin:0 0 8px">Ключевые аргументы</div>
+              <div class="muted" style="font-size:12px; margin-bottom:8px">Подсветка на основании заполненных ответов (question_bank.js / чеклист).</div>
+              <div id="args" class="list"></div>
+            </div>
+          </div>
+
+          <div class="panel" style="margin-top:12px">
+            <div class="sectionTitle" style="margin:0 0 8px">Финансы и контекст</div>
+            <div class="muted" style="font-size:13px" id="financeNote">Выбери компанию, чтобы увидеть ключевые цифры (workplaces/servers, COI, потенциал возврата).</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script>
+    const WEBAPP_URL = (window.GS_WEBAPP_URL || "").trim();
+    document.getElementById('gsUrlLabel').textContent = WEBAPP_URL ? 'задан' : 'не задан';
+    console.log("✅ Using Google Sheets WebApp URL:", WEBAPP_URL);
+
+    function jsonp(url, timeoutMs=12000){
+      return new Promise((resolve, reject) => {
+        const cb = "cb_" + Math.random().toString(36).slice(2);
+        const script = document.createElement("script");
+        const timer = setTimeout(() => { cleanup(); reject(new Error("JSONP timeout")); }, timeoutMs);
+        function cleanup(){
+          clearTimeout(timer);
+          try{ delete window[cb]; }catch(e){ window[cb]=undefined; }
+          if(script.parentNode) script.parentNode.removeChild(script);
+        }
+        window[cb] = (data) => { cleanup(); resolve(data); };
+        const sep = url.includes("?") ? "&" : "?";
+        script.src = url + sep + "callback=" + encodeURIComponent(cb);
+        script.onerror = () => { cleanup(); reject(new Error("JSONP load error")); };
+        document.body.appendChild(script);
+      });
+    }
+
+    function escapeHtml(s){
+      return String(s ?? "")
+        .replaceAll("&","&amp;")
+        .replaceAll("<","&lt;")
+        .replaceAll(">","&gt;")
+        .replaceAll('"',"&quot;")
+        .replaceAll("'","&#039;");
+    }
+
+    function fmtPct(v){ if(v==null||v===""||!isFinite(Number(v))) return "—"; return Math.round(Number(v))+"%"; }
+    function fmtRub(v){
+      const n = Number(v);
+      if(!isFinite(n)) return "—";
+      try{ return n.toLocaleString('ru-RU'); }catch(e){ return String(Math.round(n)); }
+    }
+
+    const errBox = document.getElementById('errBox');
+    function showErr(msg){ errBox.style.display='block'; errBox.textContent = msg; }
+    function clearErr(){ errBox.style.display='none'; errBox.textContent=''; }
+
+    // Search
+    const companyInput = document.getElementById('companyInput');
+    const suggestBox = document.getElementById('suggestBox');
+    let selectedCompany = '';
+    let searchTimer = null;
+
+    companyInput.addEventListener('input', () => {
+      clearTimeout(searchTimer);
+      const q = companyInput.value.trim();
+      if(q.length < 3){ suggestBox.style.display='none'; suggestBox.innerHTML=''; return; }
+      searchTimer = setTimeout(() => runSearch(q), 250);
+    });
+
+    async function runSearch(q){
+      if(!WEBAPP_URL){ showErr('GS_WEBAPP_URL пустой (config.js).'); return; }
+      try{
+        const url = WEBAPP_URL + '?action=search&q=' + encodeURIComponent(q) + '&limit=25';
+        const data = await jsonp(url);
+        if(!data || !data.ok){ showErr('Поиск: ошибка ответа Apps Script (action=search).'); return; }
+        const items = Array.isArray(data.items) ? data.items : [];
+        if(!items.length){ suggestBox.style.display='none'; suggestBox.innerHTML=''; return; }
+
+        const map = new Map();
+        for(const it of items){
+          const name = (it.company||'').trim();
+          if(!name) continue;
+          const ts = it.timestamp || '';
+          const row = it.row;
+          const prev = map.get(name);
+          if(!prev) map.set(name, {name, latestTs:ts, latestRow:row, count:1});
+          else{
+            prev.count++;
+            if(ts && (!prev.latestTs || ts > prev.latestTs)){ prev.latestTs = ts; prev.latestRow = row; }
+          }
+        }
+        const list = Array.from(map.values()).sort((a,b)=>(b.latestTs||'').localeCompare(a.latestTs||''));
+        suggestBox.innerHTML = list.slice(0,10).map(it => {
+          const extra = it.count>1 ? '<span class="badge">+'+(it.count-1)+'</span>' : '';
+          return '<div class="sItem" data-company="'+escapeHtml(it.name)+'">'
+              + '<div><div class="sName">'+escapeHtml(it.name)+'</div>'
+              + '<div class="sMeta">Обновлено: '+escapeHtml(it.latestTs||'—')+'</div></div>'
+              + extra + '</div>';
+        }).join('');
+        suggestBox.style.display='block';
+
+        suggestBox.querySelectorAll('.sItem').forEach(el => {
+          el.addEventListener('click', async () => {
+            selectedCompany = el.getAttribute('data-company') || '';
+            companyInput.value = selectedCompany || companyInput.value;
+            suggestBox.style.display='none';
+            await loadSummary(selectedCompany);
+          });
+        });
+      }catch(e){
+        showErr('Поиск: не удалось обратиться к Apps Script. Проверь URL и доступ Web App.');
+      }
+    }
+
+    // Links update
+    function updateLinks(company){
+      const qs = company ? ('?company='+encodeURIComponent(company)) : '';
+      document.getElementById('openFull').href = 'view_5_full.html'+qs;
+      document.getElementById('openInterview').href = 'view_2_interview.html'+qs;
+      document.getElementById('openIndices').href = 'view_1_indices.html'+qs;
+      document.getElementById('openPilot').href = 'view_3_requirements.html'+qs;
+      document.getElementById('openProduct').href = 'view_3b_product.html'+qs;
+      document.getElementById('openPsi').href = 'view_4_psi.html'+qs;
+    }
+
+    // Chart
+    let chart = null;
+    function ensureChart(){
+      if(chart) return chart;
+      chart = new Chart(document.getElementById('idxChart'), {
+        type:'line',
+        data:{ labels:[], datasets:[
+          {label:'PSI', data:[]},
+          {label:'Tech', data:[]},
+          {label:'Proc', data:[]},
+          {label:'Risk', data:[]},
+          {label:'Prob', data:[]},
+          {label:'Ready', data:[]},
+        ]},
+        options:{
+          responsive:true, maintainAspectRatio:false,
+          plugins:{ legend:{position:'bottom'} },
+          scales:{ y:{ beginAtZero:true, max:100 } }
+        }
+      });
+      return chart;
+    }
+
+    function setBar(id, pct){
+      const el = document.getElementById(id);
+      const w = Math.max(0, Math.min(100, Number(pct)||0));
+      el.style.width = w + '%';
+    }
+
+    function computeBudget(workplaces, servers){
+      const w = Number(workplaces)||0;
+      const s = Number(servers)||0;
+      const total = (w+s) * 1300;
+      return isFinite(total) && total>0 ? total : 0;
+    }
+
+    // Coverage: simple heuristic by presence of typical fields in the latest snapshot.
+    // (We keep it simple to avoid hard-coding 600+ fields.)
+    function computeCoverage(latest){
+      const blocks = [
+        {key:'interview', name:'Интервью', fields:['sales_manager','presale_manager','lpr','sources','industry']},
+        {key:'infra', name:'Инфраструктура', fields:['workplaces','servers','branches','vdi','closed','hostingModel','adDomains']},
+        {key:'pilot', name:'Требования к пилоту', fields:['req_','pilot_','pilotReq','pilot_requirements']},
+        {key:'product', name:'Требования к продукту', fields:['prod_','productReq','product_requirements']},
+        {key:'finance', name:'Финансы', fields:['coiTotal','coi_total','coiLic','coiDowntime','coiLabor','recoverIndex']},
+      ];
+      const out = [];
+      for(const b of blocks){
+        let total = 0, filled = 0;
+        // If fields contain prefixes, count matching keys
+        for(const f of b.fields){
+          if(f.endsWith('_')){
+            const pref = f;
+            const keys = Object.keys(latest||{}).filter(k=>String(k).startsWith(pref));
+            total += Math.max(10, keys.length);
+            filled += keys.filter(k=>{
+              const v = latest[k];
+              return v !== undefined && v !== null && String(v).trim() !== '';
+            }).length;
+          }else{
+            total += 1;
+            const v = latest[f];
+            if(v !== undefined && v !== null && String(v).trim() !== '') filled += 1;
+          }
+        }
+        const pct = total ? Math.round((filled/total)*100) : 0;
+        out.push({name:b.name, pct});
+      }
+      return out;
+    }
+
+    // Arguments: pick top signals from question bank based on truthy values in latest snapshot.
+    function computeArguments(latest){
+      const bank = window.ITMEN_QUESTION_BANK || {};
+      const res = [];
+      const keys = Object.keys(bank);
+      // cheap scan: match by normalized keys
+      function norm(s){ return String(s||'').trim().toLowerCase(); }
+      const latestNorm = new Map();
+      for(const k in (latest||{})) latestNorm.set(norm(k), latest[k]);
+
+      for(const q of keys){
+        const meta = bank[q];
+        const v = latestNorm.get(norm(meta.q)) ?? latestNorm.get(norm(q));
+        if(v === undefined || v === null || String(v).trim()==='') continue;
+        const sv = String(v).toLowerCase();
+        const yes = (sv==='да'||sv==='yes'||sv==='true'||sv==='1');
+        const partial = (sv==='частично'||sv==='0.5');
+        if(!(yes || partial)) continue;
+        res.push({
+          title: meta.func || meta.q,
+          text: meta.module ? (meta.module + ' • ' + (meta.zone||'')) : (meta.zone||''),
+          prio: Number(meta.prio||0)
+        });
+      }
+      res.sort((a,b)=> (b.prio||0) - (a.prio||0));
+      return res.slice(0,6);
+    }
+
+    async function loadSummary(company){
+      clearErr();
+      if(!company){ showErr('Выберите компанию.'); return; }
+      if(!WEBAPP_URL){ showErr('GS_WEBAPP_URL пустой (config.js).'); return; }
+      updateLinks(company);
+
+      // Local cache by company
+      const cacheKey = 'itmen_summary_'+company;
+      const cached = localStorage.getItem(cacheKey);
+      if(cached){
+        try{ renderSummary(JSON.parse(cached), company, true); }catch(_e){}
+      }
+
+      try{
+        document.getElementById('histMeta').textContent = 'загрузка…';
+        const url = WEBAPP_URL + '?action=history&company=' + encodeURIComponent(company) + '&limit=400';
+        const data = await jsonp(url, 20000);
+        if(!data || !data.ok){ showErr('Не удалось получить историю компании (action=history). Проверь Apps Script.'); return; }
+        localStorage.setItem(cacheKey, JSON.stringify(data));
+        renderSummary(data, company, false);
+      }catch(e){
+        showErr('Ошибка загрузки истории. Проверь доступность Web App и права.');
+      }
+    }
+
+    function renderSummary(data, company, fromCache){
+      const items = Array.isArray(data.items) ? data.items : [];
+      document.getElementById('histMeta').textContent = (items.length? (items.length+' сохранений') : 'нет данных') + (fromCache?' • кэш':'');
+
+      const labels = items.map((it, idx)=>{
+        const t = String(it.timestamp||'').trim();
+        if(!t) return String(idx+1);
+        return t.replace('T',' ').slice(0,16);
+      });
+
+      const ds = {
+        psi: items.map(it=> isFinite(it.psi)? it.psi : null),
+        tech: items.map(it=> isFinite(it.tech)? it.tech : null),
+        proc: items.map(it=> isFinite(it.proc)? it.proc : null),
+        risk: items.map(it=> isFinite(it.risk)? it.risk : null),
+        prob: items.map(it=> isFinite(it.prob)? it.prob : null),
+        ready: items.map(it=> isFinite(it.ready)? it.ready : null),
+      };
+
+      const c = ensureChart();
+      c.data.labels = labels;
+      c.data.datasets[0].data = ds.psi;
+      c.data.datasets[1].data = ds.tech;
+      c.data.datasets[2].data = ds.proc;
+      c.data.datasets[3].data = ds.risk;
+      c.data.datasets[4].data = ds.prob;
+      c.data.datasets[5].data = ds.ready;
+      c.update();
+
+      const last = items.length ? items[items.length-1] : {};
+      document.getElementById('kpiPsi').textContent = fmtPct(last.psi);
+      document.getElementById('kpiProb').textContent = fmtPct(last.prob);
+      document.getElementById('kpiCOI').textContent = fmtRub(last.coiTotal);
+      const budget = computeBudget(last.workplaces, last.servers);
+      document.getElementById('kpiBudget').textContent = budget ? fmtRub(budget) : '—';
+
+      // Blocks
+      const cov = computeCoverage(last);
+      const blocksEl = document.getElementById('blocks');
+      blocksEl.innerHTML = cov.map((b,i)=>{
+        const id = 'bar_'+i;
+        return '<div class="blockRow">'
+          + '<div style="min-width:140px; font-weight:900; font-size:13px">'+escapeHtml(b.name)+'</div>'
+          + '<div class="bar"><div id="'+id+'"></div></div>'
+          + '<div class="pct">'+b.pct+'%</div>'
+          + '</div>';
+      }).join('');
+      cov.forEach((b,i)=> setBar('bar_'+i, b.pct));
+
+      // Arguments
+      const args = computeArguments(last);
+      const argsEl = document.getElementById('args');
+      argsEl.innerHTML = args.length ? args.map(a=>
+        '<div class="item">'
+          + '<div class="itemTitle">'+escapeHtml(a.title)+'</div>'
+          + '<div class="itemText">'+escapeHtml(a.text)+'</div>'
+        + '</div>'
+      ).join('') : '<div class="muted" style="font-size:13px">Пока нет достаточно заполненных ответов для аргументов.</div>';
+
+      // Finance note
+      const w = Number(last.workplaces)||0;
+      const s = Number(last.servers)||0;
+      const fn = [];
+      fn.push('<span class="pillTag">Компания</span> <b>'+escapeHtml(company)+'</b>');
+      fn.push('<div style="margin-top:10px; display:flex; gap:12px; flex-wrap:wrap">'
+        + '<div class="pillTag">Workplaces: <b style="color:var(--text)">'+(w||'—')+'</b></div>'
+        + '<div class="pillTag">Servers: <b style="color:var(--text)">'+(s||'—')+'</b></div>'
+        + '<div class="pillTag">Проект: <b style="color:var(--text)">'+(budget?fmtRub(budget):'—')+'</b></div>'
+        + '<div class="pillTag">COI: <b style="color:var(--text)">'+fmtRub(last.coiTotal)+'</b></div>'
+        + '</div>');
+      document.getElementById('financeNote').innerHTML = fn.join('');
+    }
+
+    // Buttons
+    document.getElementById('btnLoad').addEventListener('click', async ()=>{
+      const c = (companyInput.value||'').trim();
+      if(c.length<2){ showErr('Введите компанию или выберите из списка.'); return; }
+      selectedCompany = c;
+      await loadSummary(selectedCompany);
+    });
+    document.getElementById('btnReset').addEventListener('click', ()=>{
+      const c = (companyInput.value||'').trim();
+      if(!c) return;
+      localStorage.removeItem('itmen_summary_'+c);
+      showErr('Кэш сброшен для: '+c);
+    });
+
+    // Auto-load from URL param
+    (function(){
+      const params = new URLSearchParams(location.search);
+      const c = params.get('company');
+      if(c){ companyInput.value = c; selectedCompany = c; loadSummary(c); }
+    })();
+  </script>
+</body>
+</html>
