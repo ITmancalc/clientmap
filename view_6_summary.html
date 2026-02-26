@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>ИТМен — Выводы</title>
   <script src="config.js"></script>
-  <script src="build_info.js?v=v80"></script>
+  <script src="build_info.js?v=v81"></script>
   <script src="question_bank.js"></script>
   <style>
     :root{
@@ -141,6 +141,26 @@
       border:1px dashed rgba(239,68,68,.35); background:rgba(239,68,68,.06);
       color:#7f1d1d; font-size:13px; display:none;
     }
+  
+    /* Conclusions UX */
+    .tldrGrid{display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:12px;}
+    @media (max-width: 980px){ .tldrGrid{grid-template-columns:1fr} }
+    .tldrBox{border:1px solid var(--line); border-radius:14px; background:#fff; padding:12px;}
+    .tldrHead{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:8px}
+    .tldrTitle{font-weight:950; font-size:13px}
+    .tldrHint{font-size:12px; color:var(--muted)}
+    .tldrList{margin:0; padding-left:18px; color:var(--text)}
+    .tldrList li{margin:6px 0; line-height:1.25}
+    .tldrList b{font-weight:950}
+    .sect{margin-top:12px}
+    .sectHead{display:flex; align-items:flex-end; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:8px}
+    .sectTitle{font-weight:950; font-size:13px}
+    .sectDesc{font-size:12px; color:var(--muted); margin-top:2px}
+    .sectGrid{display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:12px}
+    @media (max-width: 980px){ .sectGrid{grid-template-columns:1fr} }
+    .moreBtn{border:1px solid var(--line); background:#fff; border-radius:12px; padding:8px 10px; font-size:12px; cursor:pointer; color:var(--text)}
+    .miniTag{font-size:11px; font-weight:900; padding:4px 8px; border-radius:999px; border:1px solid rgba(15,23,42,.12); color:var(--muted); background:rgba(15,23,42,.04); white-space:nowrap}
+
   </style>
 </head>
 <body>
@@ -241,14 +261,14 @@
           <div class="summaryTop">
             <div class="kpi"><div class="kpiVal" id="kpiPsi">—</div><div class="kpiLbl">PSI (последний)</div></div>
             <div class="kpi"><div class="kpiVal" id="kpiProb">—</div><div class="kpiLbl">Вероятность (последняя)</div></div>
-            <div class="kpi"><div class="kpiVal" id="kpiCOI">—</div><div class="kpiLbl">Cost of Inaction (₽/год)</div></div>
+            <div class="kpi"><div class="kpiVal" id="kpiCOI">—</div><div class="kpiLbl">Стоимость бездействия (₽/год)</div></div>
             <div class="kpi"><div class="kpiVal" id="kpiBudget">—</div><div class="kpiLbl">Оценка проекта (₽)</div></div>
           </div>
 
           <div class="panel" style="margin-top:12px">
             <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px; flex-wrap:wrap">
               <div>
-                <div class="sectionTitle" style="margin:0">Executive snapshot</div>
+                <div class="sectionTitle" style="margin:0">Коротко по сути</div>
                 <div class="muted" style="font-size:12px">Автоматический статус сделки + фокус следующего шага.</div>
               </div>
               <div class="pillTag" id="dealStatus">—</div>
@@ -267,8 +287,8 @@
 
             <div style="display:flex; justify-content:space-between; gap:10px; align-items:center; flex-wrap:wrap">
               <div class="seg" id="chartModeSeg" style="margin:0">
-                <button type="button" data-chartmode="core" class="active">Core</button>
-                <button type="button" data-chartmode="advanced">Advanced</button>
+                <button type="button" data-chartmode="core" class="active">Основное</button>
+                <button type="button" data-chartmode="advanced">Все индексы</button>
               </div>
               <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap">
                 <button type="button" class="btn ghost" id="btnShowAll" style="padding:7px 10px; font-size:12px">Показать всё</button>
@@ -276,7 +296,7 @@
               </div>
             </div>
 
-            <div class="muted" style="font-size:12px; margin-top:6px">Клик по легенде или по чипсам скрывает/показывает индексы. Core — только PSI/Prob/Risk.</div>
+            <div class="muted" style="font-size:12px; margin-top:6px">Клик по легенде или по чипсам скрывает/показывает индексы. Основное — только PSI/Prob/Risk.</div>
             <div id="chartFilters" class="filters"></div>
 
             <div class="chartWrap">
@@ -294,15 +314,16 @@
             <div style="display:flex; align-items:flex-end; justify-content:space-between; gap:12px; flex-wrap:wrap">
               <div>
                 <div class="sectionTitle" style="margin:0">Ключевые выводы и рекомендации</div>
-                <div class="muted" style="font-size:12px; margin-top:2px">Sales — аргументы по заполненным ответам (чеклист + ABM). Pre‑Sales — фокус на пилот/PSI/реализуемость.</div>
+                <div class="muted" style="font-size:12px; margin-top:2px">Продажи — аргументы по заполненным ответам (чеклист + ABM). Пресейл — фокус на пилот/PSI/реализуемость.</div>
               </div>
               <div class="seg" id="modeSeg" style="margin:0">
-                <button type="button" data-mode="sales" class="active">Sales</button>
-                <button type="button" data-mode="presales">Pre‑Sales</button>
+                <button type="button" data-mode="sales" class="active">Продажи</button>
+                <button type="button" data-mode="presales">Пресейл</button>
               </div>
             </div>
 
-            <div id="args" class="insightsGrid"></div>
+            <div id="argsTLDR" style="margin-top:10px"></div>
+            <div id="argsSections" style="margin-top:12px"></div>
           </div>
 
           <div class="panel" style="margin-top:12px">
@@ -697,7 +718,7 @@
     async function loadAbmNeeds(){
       if(ABM_NEEDS) return ABM_NEEDS;
       try{
-        const r = await fetch('abm_needs.json?v=v79', {cache:'no-store'});
+        const r = await fetch('abm_needs.json?v=v81', {cache:'no-store'});
         ABM_NEEDS = await r.json();
       }catch(e){ ABM_NEEDS = null; }
       return ABM_NEEDS;
@@ -707,7 +728,7 @@
     async function loadSalesRules(){
       if(Array.isArray(SALES_RULES)) return SALES_RULES;
       try{
-        const r = await fetch('sales_rules.json?v=v79', {cache:'no-store'});
+        const r = await fetch('sales_rules.json?v=v81', {cache:'no-store'});
         const j = await r.json();
         SALES_RULES = Array.isArray(j?.rules) ? j.rules : [];
       }catch(e){
@@ -830,29 +851,29 @@
     }
 
 
+    
     async function renderConclusions(latest){
       await loadSalesRules();
       await loadAbmNeeds();
-      const box = document.getElementById('args');
-      if(!box) return;
-      box.innerHTML='';
-      const items = (CURRENT_MODE==='presales') ? computePreSalesTips(latest) : computeSalesArguments(latest, 12);
-      const abmItems = (CURRENT_MODE==='sales') ? computeAbmNeeds(latest) : [];
-      if(!items.length && !abmItems.length){
-        const empty = document.createElement('div');
-        empty.className='muted';
-        empty.style.fontSize='13px';
-        empty.textContent = (CURRENT_MODE==='presales') ? 'Пока недостаточно данных для выводов Pre‑Sales.' : 'Пока недостаточно заполненных ответов для аргументов Sales.';
-        box.appendChild(empty);
-        return;
-      }
 
-      const inferImpact = (t, txt) => {
-        const s = (t+' '+(txt||'')).toLowerCase();
-        if(s.includes('cost') || s.includes('coi') || s.includes('просто') || s.includes('лиценз') || s.includes('бюджет') || s.includes('потер')) return 'high';
-        if(s.includes('ps i') || s.includes('psi') || s.includes('риск') || s.includes('вероят')) return 'med';
+      const tldrEl = document.getElementById('argsTLDR');
+      const secEl  = document.getElementById('argsSections');
+      if(!tldrEl || !secEl) return;
+
+      const salesAllRaw = computeSalesArguments(latest, 999);
+      const abmRaw = computeAbmNeeds(latest);
+      const presalesRaw = computePreSalesTips(latest);
+
+      const inferImpact = (title, text) => {
+        const s = (title+' '+(text||'')).toLowerCase();
+        if(s.includes('потер') || s.includes('стоим') || s.includes('бездейств') || s.includes('лиценз') || s.includes('бюджет') || s.includes('просто') || s.includes('roi') || s.includes('окуп')) return 'high';
+        if(s.includes('риск') || s.includes('вероят') || s.includes('готовн') || s.includes('psi') || s.includes('ps i')) return 'med';
         return 'low';
       };
+
+      const impactScore = (imp)=> imp==='high'?3:imp==='med'?2:1;
+      const impactLabel = (imp)=> imp==='high'?'Высокий':imp==='med'?'Средний':'Низкий';
+
       const fmtBasis = (k, v) => {
         if(!k) return '';
         if(v==null || v==='') return String(k);
@@ -861,27 +882,250 @@
         return `${k} = ${str.length>80 ? (str.slice(0,77)+'…') : str}`;
       };
 
-      const renderCard = (it, tagLabel=null) => {
-        const impact = inferImpact(it.title||'', it.text||'');
-        const card = document.createElement('div');
-        card.className = 'insCard';
-        const basis = fmtBasis(it.key, it.val);
-        card.innerHTML = `
-          <div class="insTop">
-            <div class="insTitle">${escapeHtml(it.title||'')}</div>
-            <div style="display:flex; gap:8px; align-items:center">
-              ${tagLabel ? `<span class="impact" title="Источник">${escapeHtml(tagLabel)}</span>` : ''}
-              <span class="impact ${impact}">${impact==='high'?'High':impact==='med'?'Medium':'Low'}</span>
-            </div>
-          </div>
-          <div class="insBody">${escapeHtml(it.text||'')}</div>
-          ${basis ? `<div class="insFoot">Основание: <b>${escapeHtml(basis)}</b></div>` : ''}
-        `;
-        box.appendChild(card);
+      const categorySales = (it)=>{
+        const key = String(it.key||'').toLowerCase();
+        const title = String(it.title||'').toLowerCase();
+        const text = String(it.text||'').toLowerCase();
+        const s = key+' '+title+' '+text;
+
+        if(it._source === 'ABM') return 'ABM‑потребности';
+
+        // Finance / economy
+        if(s.includes('coi') || s.includes('стоим') || s.includes('бездейств') || s.includes('зарплат') || s.includes('ручн') || s.includes('лиценз') || s.includes('unused') || s.includes('бюджет') || s.includes('просто') || key.includes('salary') || key.includes('itcount') || key.includes('manual') || key.includes('budget') || key.includes('unused')) return 'Экономика';
+
+        // Infra
+        if(key.includes('branch') || key.includes('hosting') || key.includes('ad') || key.includes('net') || key.includes('seg') || title.includes('филиал') || title.includes('модель размещ') || title.includes('домен') || title.includes('сегмент')) return 'Инфраструктура';
+
+        // Risks
+        if(s.includes('риск') || s.includes('провер') || s.includes('аудит') || s.includes('комплаенс')) return 'Риски';
+
+        return 'Прочее';
       };
 
-      for(const it of items) renderCard(it, CURRENT_MODE==='presales' ? 'Pre‑Sales' : 'Sales');
-      for(const it of abmItems.slice(0,8)) renderCard(it, 'ABM');
+      const categoryPreSales = (it)=>{
+        const title = String(it.title||'').toLowerCase();
+        const text = String(it.text||'').toLowerCase();
+        const s = title+' '+text;
+
+        if(s.includes('демонстрац') || s.includes('показать')) return 'Что показать на демонстрации';
+        if(s.includes('запрос') || s.includes('выгруз') || s.includes('доступ')) return 'Что запросить у клиента';
+        if(s.includes('критер') || s.includes('успех') || s.includes('соглас')) return 'Что обязательно уточнить';
+        if(s.includes('риск') || s.includes('низк')) return 'Риски пилота';
+        return 'Следующие шаги';
+      };
+
+      const normalize = (items, mode)=>{
+        const out=[];
+        for(const it of (items||[])){
+          const obj = { ...it };
+          obj._source = obj._source || (mode==='presales' ? 'Пресейл' : 'Продажи');
+          obj._impact = inferImpact(obj.title||'', obj.text||'');
+          obj._basis  = fmtBasis(obj.key, obj.val);
+          obj._cat = (mode==='presales') ? categoryPreSales(obj) : categorySales(obj);
+          // priority
+          let pr = impactScore(obj._impact);
+          const tt = (String(obj.title||'')+' '+String(obj.text||'')).toLowerCase();
+          if(tt.includes('след') || tt.includes('критер') || tt.includes('успех')) pr += 0.5;
+          if(tt.includes('coi') || tt.includes('бездейств') || tt.includes('лиценз') || tt.includes('зарплат')) pr += 0.5;
+          obj._prio = pr;
+          out.push(obj);
+        }
+        return out;
+      };
+
+      // Add ABM needs into sales (as отдельный источник)
+      const salesAll = normalize(
+        (salesAllRaw||[]).map(x=>({...x, _source:'Продажи'})).concat((abmRaw||[]).map(x=>({title:x.title, text:x.text, key:null, val:null, _source:'ABM'}))),
+        'sales'
+      );
+
+      // Extend presales with simple demo/request hints
+      const presalesExtra = [];
+      if(latest){
+        const tech = num(latest.techIndex ?? latest.tech);
+        const risk = num(latest.riskIndex ?? latest.risk);
+        const proc = num(latest.procIndex ?? latest.proc);
+        const hasSources = isFilled(latest.sources);
+        if(Number.isFinite(tech) && tech < 50) presalesExtra.push({title:'Показать на демонстрации: автообнаружение и нормализация', text:'Покажи скорость получения “правды” по активам + как убирается ручной труд.', key:'techIndex', val:tech});
+        if(Number.isFinite(risk) && risk > 60) presalesExtra.push({title:'Показать на демонстрации: контроль изменений и риски', text:'Покажи, как изменения фиксируются и почему “невидимые” изменения опасны.', key:'riskIndex', val:risk});
+        if(Number.isFinite(proc) && proc < 50) presalesExtra.push({title:'Согласовать критерии успеха пилота', text:'Зафиксируй: что считаем “приняли”, какой охват, сроки, ответственные.', key:'procIndex', val:proc});
+        if(!hasSources) presalesExtra.push({title:'Запросить у клиента источники данных', text:'Уточни: какие системы дадут первичные данные (AD/CMDB/виртуализация/сканеры/мониторинг).', key:'sources', val:latest.sources});
+      }
+
+      const presalesAll = normalize((presalesRaw||[]).concat(presalesExtra).map(x=>({...x, _source:'Пресейл'})), 'presales');
+
+      // Deduplicate by title (merge bases)
+      function dedup(arr){
+        const m = new Map();
+        for(const it of arr){
+          const k = String(it.title||'').trim().toLowerCase();
+          if(!k) continue;
+          if(!m.has(k)){
+            m.set(k, {...it, _bases: it._basis ? [it._basis] : []});
+          } else {
+            const ex = m.get(k);
+            if(it._basis) ex._bases.push(it._basis);
+            // keep higher priority
+            if((it._prio||0) > (ex._prio||0)){
+              ex.text = it.text || ex.text;
+              ex.key = it.key || ex.key;
+              ex.val = it.val || ex.val;
+              ex._impact = it._impact;
+              ex._prio = it._prio;
+              ex._cat = it._cat;
+            }
+            m.set(k, ex);
+          }
+        }
+        return Array.from(m.values()).map(x=>{
+          const uniq = Array.from(new Set((x._bases||[]).filter(Boolean)));
+          x._basisMerged = uniq.slice(0,4).join(' • ');
+          return x;
+        });
+      }
+
+      const salesD = dedup(salesAll).sort((a,b)=> (b._prio||0)-(a._prio||0));
+      const preD   = dedup(presalesAll).sort((a,b)=> (b._prio||0)-(a._prio||0));
+
+      // --- TLDR render (always both columns) ---
+      function pickTop(arr, n){
+        const out=[];
+        for(const it of arr){
+          if(out.length>=n) break;
+          out.push(it);
+        }
+        return out;
+      }
+
+      const topSales = pickTop(salesD, 3);
+      const topPre   = pickTop(preD, 3);
+
+      tldrEl.innerHTML = `
+        <div class="tldrGrid">
+          <div class="tldrBox">
+            <div class="tldrHead">
+              <div class="tldrTitle">Главное для продаж (ТОП‑3)</div>
+              <div class="tldrHint">Коротко, чтобы “продать смысл”.</div>
+            </div>
+            ${topSales.length ? `<ol class="tldrList">${topSales.map(it=>`<li><b>${escapeHtml(it.title||'')}</b>${it.text?`: <span class="muted">${escapeHtml(it.text).split('\n')[0]}</span>`:''}</li>`).join('')}</ol>` :
+              `<div class="muted" style="font-size:13px">Пока не хватает заполненных данных для аргументов.</div>`}
+          </div>
+          <div class="tldrBox">
+            <div class="tldrHead">
+              <div class="tldrTitle">Главное для пресейла (ТОП‑3)</div>
+              <div class="tldrHint">Что сделать, чтобы пилот был управляемым.</div>
+            </div>
+            ${topPre.length ? `<ol class="tldrList">${topPre.map(it=>`<li><b>${escapeHtml(it.title||'')}</b>${it.text?`: <span class="muted">${escapeHtml(it.text).split('\n')[0]}</span>`:''}</li>`).join('')}</ol>` :
+              `<div class="muted" style="font-size:13px">Пока не хватает данных для рекомендаций пресейла.</div>`}
+          </div>
+        </div>
+      `;
+
+      // --- Sections render (by current tab) ---
+      const modeItems = (CURRENT_MODE==='presales') ? preD : salesD;
+
+      function groupByCat(arr){
+        const g = new Map();
+        for(const it of arr){
+          const cat = it._cat || 'Прочее';
+          if(!g.has(cat)) g.set(cat, []);
+          g.get(cat).push(it);
+        }
+        // stable order
+        const order = (CURRENT_MODE==='presales')
+          ? ['Что показать на демонстрации','Что запросить у клиента','Что обязательно уточнить','Риски пилота','Следующие шаги']
+          : ['Экономика','Инфраструктура','Риски','ABM‑потребности','Прочее'];
+        const keys = Array.from(g.keys()).sort((a,b)=>{
+          const ia = order.indexOf(a); const ib = order.indexOf(b);
+          if(ia!==-1 || ib!==-1) return (ia===-1?999:ia)-(ib===-1?999:ib);
+          return a.localeCompare(b);
+        });
+        return keys.map(k=>({cat:k, items:g.get(k)}));
+      }
+
+      function renderCard(it){
+        const imp = it._impact || 'low';
+        const src = it._source || '';
+        const basis = it._basisMerged || it._basis || '';
+        const details = basis ? `<details style="margin-top:10px"><summary class="muted" style="cursor:pointer; font-size:12px">Показать данные</summary><div class="insFoot" style="border-top:none; padding-top:6px">Основание: <b>${escapeHtml(basis)}</b></div></details>` : '';
+        return `
+          <div class="insCard">
+            <div class="insTop">
+              <div class="insTitle">${escapeHtml(it.title||'')}</div>
+              <div style="display:flex; gap:8px; align-items:center">
+                ${src ? `<span class="miniTag" title="Источник">${escapeHtml(src)}</span>`:''}
+                <span class="impact ${imp}">${impactLabel(imp)}</span>
+              </div>
+            </div>
+            <div class="insBody">${escapeHtml(it.text||'')}</div>
+            ${details}
+          </div>
+        `;
+      }
+
+      function renderSection(cat, arr){
+        // limit: show 5 first, rest in "ещё"
+        const top = arr.slice(0,5);
+        const rest = arr.slice(5);
+
+        const secId = 'sec_' + Math.random().toString(36).slice(2);
+        return `
+          <div class="sect">
+            <div class="sectHead">
+              <div>
+                <div class="sectTitle">${escapeHtml(cat)}</div>
+                <div class="sectDesc">${CURRENT_MODE==='presales'
+                  ? (cat==='Что показать на демонстрации' ? 'Сюжеты демонстрации — проводит пресейл.' :
+                     cat==='Что запросить у клиента' ? 'Какие данные/доступы запросить.' :
+                     cat==='Что обязательно уточнить' ? 'Что согласовать перед пилотом/КП.' :
+                     cat==='Риски пилота' ? 'Что может сорвать пилот.' : 'План действий.')
+                  : (cat==='Экономика' ? 'Аргументы “переводим хаос в деньги”.' :
+                     cat==='Инфраструктура' ? 'Аргументы по сложности среды и архитектуре.' :
+                     cat==='Риски' ? 'Аргументы про риски и последствия.' :
+                     cat==='ABM‑потребности' ? 'Подсказки по бизнес‑задачам клиента.' : 'Дополнительные сигналы.')
+                }</div>
+              </div>
+              ${rest.length ? `<button class="moreBtn" data-more="${secId}">Показать ещё (${rest.length})</button>` : ''}
+            </div>
+            <div class="sectGrid" id="${secId}">
+              ${top.map(renderCard).join('')}
+              ${rest.length ? rest.map(renderCard).join('').replaceAll('insCard', 'insCard moreHidden') : ''}
+            </div>
+          </div>
+        `;
+      }
+
+      // render sections
+      const groups = groupByCat(modeItems);
+
+      if(!groups.length){
+        secEl.innerHTML = `<div class="muted" style="font-size:13px">Пока недостаточно данных для выводов.</div>`;
+      } else {
+        secEl.innerHTML = groups.map(g=>renderSection(g.cat, g.items)).join('');
+      }
+
+      // show-more handler
+      secEl.querySelectorAll('button.moreBtn').forEach(btn=>{
+        btn.addEventListener('click', ()=>{
+          const id = btn.getAttribute('data-more');
+          const grid = document.getElementById(id);
+          if(!grid) return;
+          const hidden = grid.querySelectorAll('.moreHidden');
+          const isHidden = hidden.length && hidden[0].style.display !== 'block';
+          hidden.forEach(el=> el.style.display = isHidden ? 'block' : 'none');
+          btn.textContent = isHidden ? 'Скрыть' : btn.textContent.replace('Скрыть', '').trim();
+          if(!isHidden){
+            // revert label
+            const n = hidden.length;
+            btn.textContent = `Показать ещё (${n})`;
+          } else {
+            btn.textContent = 'Скрыть';
+          }
+        });
+      });
+
+      // hide extra by default
+      secEl.querySelectorAll('.moreHidden').forEach(el=>{ el.style.display='none'; });
     }
 
 
@@ -979,7 +1223,7 @@
       }).join('');
       cov.forEach((b,i)=> setBar('bar_'+i, b.pct));
 
-      // Executive snapshot: status + next actions
+      // Коротко по сути: status + next actions
       (function(){
         const psi = Number(last.psi2Score ?? last.psi);
         const prob = Number(last.probIndex ?? last.prob);
