@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>ИТМен — Выводы</title>
   <script src="config.js"></script>
-  <script src="build_info.js?v=v78"></script>
+  <script src="build_info.js?v=v79"></script>
   <script src="question_bank.js"></script>
   <style>
     :root{
@@ -33,6 +33,8 @@
     a{color:inherit; text-decoration:none}
 
     .filters{display:flex; flex-wrap:wrap; gap:8px; margin:6px 0 10px}
+    .chartWrap{height:420px; width:100%; border-top:1px solid var(--line); margin-top:10px; padding-top:10px}
+    @media (max-width: 980px){ .chartWrap{height:360px;} }
     .fbtn{border:1px solid var(--line); background:var(--card); border-radius:999px; padding:6px 10px; font-size:12px; cursor:pointer; user-select:none}
     .fbtn.off{opacity:.45}
     .seg{display:flex; gap:8px; margin:6px 0 10px}
@@ -242,45 +244,55 @@
             <div id="dealNext" class="list" style="margin-top:10px"></div>
           </div>
 
-          <div class="cols">
-            <div class="panel">
-              <div style="display:flex; justify-content:space-between; gap:10px; align-items:flex-end; margin-bottom:8px; flex-wrap:wrap">
-                <div>
-                  <div class="sectionTitle" style="margin:0">Динамика индексов</div>
-                  <div class="muted" style="font-size:12px">По сохранениям в Google Sheets (история строк).</div>
-                </div>
-                <div class="pillTag" id="histMeta">—</div>
+          <div class="panel">
+            <div style="display:flex; justify-content:space-between; gap:10px; align-items:flex-end; margin-bottom:8px; flex-wrap:wrap">
+              <div>
+                <div class="sectionTitle" style="margin:0">Динамика индексов</div>
+                <div class="muted" style="font-size:12px">По сохранениям в Google Sheets (история строк). Можно переключать индексы и режим.</div>
               </div>
-              <div style="display:flex; justify-content:space-between; gap:10px; align-items:center; flex-wrap:wrap">
-                <div class="seg" id="chartModeSeg" style="margin:0">
-                  <button type="button" data-chartmode="core" class="active">Core</button>
-                  <button type="button" data-chartmode="advanced">Advanced</button>
-                </div>
-                <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap">
-                  <button type="button" class="btn ghost" id="btnShowAll" style="padding:7px 10px; font-size:12px">Показать всё</button>
-                  <button type="button" class="btn ghost" id="btnHideAll" style="padding:7px 10px; font-size:12px">Скрыть всё</button>
-                </div>
+              <div class="pillTag" id="histMeta">—</div>
+            </div>
+
+            <div style="display:flex; justify-content:space-between; gap:10px; align-items:center; flex-wrap:wrap">
+              <div class="seg" id="chartModeSeg" style="margin:0">
+                <button type="button" data-chartmode="core" class="active">Core</button>
+                <button type="button" data-chartmode="advanced">Advanced</button>
               </div>
-              <div class="muted" style="font-size:12px; margin-top:6px">Клик по легенде или по чипсам скрывает/показывает индексы. Core — только PSI/Prob/Risk.</div>
-              <div id="chartFilters" class="filters"></div>
+              <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap">
+                <button type="button" class="btn ghost" id="btnShowAll" style="padding:7px 10px; font-size:12px">Показать всё</button>
+                <button type="button" class="btn ghost" id="btnHideAll" style="padding:7px 10px; font-size:12px">Скрыть всё</button>
+              </div>
+            </div>
+
+            <div class="muted" style="font-size:12px; margin-top:6px">Клик по легенде или по чипсам скрывает/показывает индексы. Core — только PSI/Prob/Risk.</div>
+            <div id="chartFilters" class="filters"></div>
+
+            <div class="chartWrap">
               <canvas id="idxChart"></canvas>
             </div>
+          </div>
+
+          <div class="cols" style="margin-top:12px">
             <div class="panel">
               <div class="sectionTitle" style="margin:0 0 8px">Заполненность блоков</div>
+              <div class="muted" style="font-size:12px; margin-bottom:10px">Упрощённая оценка по наличию ключевых полей. Требования к пилоту/продукту тут не считаем (слишком сильно зависит от шаблона).</div>
               <div id="blocks" class="blocks"></div>
-              <div style="height:12px"></div>
-              <div class="sectionTitle" style="margin:0 0 8px">Выводы</div>
+            </div>
+
+            <div class="panel">
+              <div class="sectionTitle" style="margin:0 0 8px">Ключевые выводы</div>
               <div class="seg" id="modeSeg">
                 <button type="button" data-mode="sales" class="active">Sales</button>
                 <button type="button" data-mode="presales">Pre‑Sales</button>
               </div>
-              <div class="muted" style="font-size:12px; margin-bottom:8px">Подсветка на основании заполненных ответов (sales_rules.json) + быстрые подсказки для пресейла.</div>
+              <div class="muted" style="font-size:12px; margin-bottom:8px">Источник: чеклист сделки + ABM бизнес‑потребности (см. файлы в репо).</div>
               <div id="args" class="list"></div>
             </div>
           </div>
 
           <div class="panel" style="margin-top:12px">
             <div class="sectionTitle" style="margin:0 0 8px">Финансы и контекст</div>
+
             <div class="muted" style="font-size:13px" id="financeNote">Выбери компанию, чтобы увидеть ключевые цифры (workplaces/servers, COI, потенциал возврата).</div>
           </div>
         </div>
@@ -355,7 +367,7 @@
         const data = await jsonp(url);
         if(!data || !data.ok){ showErr('Поиск: ошибка ответа Apps Script (action=search).'); return; }
         const items = Array.isArray(data.items) ? data.items : [];
-        if(!items.length){ suggestBox.style.display='none'; suggestBox.innerHTML=''; return; }
+        if(!items.length && !abmItems.length){ suggestBox.style.display='none'; suggestBox.innerHTML=''; return; }
 
         const map = new Map();
         for(const it of items){
@@ -630,9 +642,7 @@
       const blocks = [
         {key:'interview', name:'Интервью', fields:['sales_manager','presale_manager','lpr','sources','industry']},
         {key:'infra', name:'Инфраструктура', fields:['workplaces','servers','branches','vdi','closed','hostingModel','adDomains']},
-        {key:'pilot', name:'Требования к пилоту', fields:['req_','pilot_','pilotReq','pilot_requirements']},
-        {key:'product', name:'Требования к продукту', fields:['prod_','productReq','product_requirements']},
-        {key:'finance', name:'Финансы', fields:['coiTotal','coi_total','coiLic','coiDowntime','coiLabor','recoverIndex']},
+        {key:'finance', name:'Финансы', fields:['coiTotal','coi_total','coiLic','coiDowntime','coiLabor','recoverIndex','licBudget','unusedPct','downtimeHours','downtimeCost','manualPct','salary','itCount']},
       ];
       const out = [];
       for(const b of blocks){
@@ -668,10 +678,21 @@
     let CURRENT_MODE = 'sales';
     let SALES_RULES = null;
 
+    let ABM_NEEDS = null;
+    async function loadAbmNeeds(){
+      if(ABM_NEEDS) return ABM_NEEDS;
+      try{
+        const r = await fetch('abm_needs.json?v=v79', {cache:'no-store'});
+        ABM_NEEDS = await r.json();
+      }catch(e){ ABM_NEEDS = null; }
+      return ABM_NEEDS;
+    }
+
+
     async function loadSalesRules(){
       if(Array.isArray(SALES_RULES)) return SALES_RULES;
       try{
-        const r = await fetch('sales_rules.json?v=v78', {cache:'no-store'});
+        const r = await fetch('sales_rules.json?v=v79', {cache:'no-store'});
         const j = await r.json();
         SALES_RULES = Array.isArray(j?.rules) ? j.rules : [];
       }catch(e){
@@ -694,22 +715,24 @@
       return Number.isFinite(n) ? n : NaN;
     }
 
-    function computeSalesArguments(latest, limit=10){
+    function computeSalesArguments(latest, limit=12){
       const rules = Array.isArray(SALES_RULES) ? SALES_RULES : [];
       const out=[];
       for(const r of rules){
+        if(r.mode && r.mode !== 'sales') continue;
         const key = r.key;
         const v = latest ? latest[key] : undefined;
-        if(!isFilled(v)) continue;
 
+        const cond = r.cond || r.trigger || 'filled';
         let ok=false;
-        if(r.trigger==='filled') ok = isFilled(v);
-        else if(r.trigger==='truthy') ok = normBool(v) || (Number.isFinite(num(v)) && num(v)>0);
-        else if(r.trigger==='gt0') ok = Number.isFinite(num(v)) && num(v)>0;
-        else if(r.trigger==='lt1') ok = Number.isFinite(num(v)) && num(v)<1;
-        else ok = true;
 
-        if(ok) out.push({title:r.param, text:r.text});
+        if(cond==='filled') ok = isFilled(v);
+        else if(cond==='bool_true') ok = normBool(v);
+        else if(cond==='gt0') ok = Number.isFinite(num(v)) && num(v)>0;
+        else if(cond==='lt1') ok = Number.isFinite(num(v)) && num(v)<1;
+        else ok = isFilled(v);
+
+        if(ok) out.push({title:r.param || key, text:r.text || ''});
       }
       return out.slice(0, limit);
     }
@@ -731,12 +754,76 @@
       return tips;
     }
 
-    function renderConclusions(latest){
+
+    function clamp01(x){ return Math.max(0, Math.min(1, x)); }
+
+    function computeQScoresFromSnapshot(latest){
+      // 0 = всё ок, 1 = сильная боль. Если нет конкретного поля — используем индексы как прокси.
+      const tech = clamp01(1 - (num(latest.techIndex ?? latest.tech_index ?? 0) / 100));
+      const proc = clamp01(1 - (num(latest.procIndex ?? latest.proc_index ?? 0) / 100));
+      const risk = clamp01((num(latest.riskIndex ?? latest.risk_index ?? 0) / 100));
+
+      const q = {};
+      // Tech-proxy
+      for(let i=1;i<=10;i++) q['Q'+i] = tech;
+      // Proc / governance proxy
+      q.Q11 = proc;
+      q.Q12 = risk;
+      q.Q13 = proc;
+      q.Q14 = proc;
+      q.Q15 = tech;
+      q.Q16 = risk;
+      q.Q17 = proc;
+
+      // Contextual questions (вопросы-скрининг) — по полям, где можем
+      q.Q18 = (Number.isFinite(num(latest.branches)) && num(latest.branches)>1) ? 1 : 0;
+      q.Q19 = isFilled(latest.hwPlan) ? 1 : 0;
+      q.Q20 = (Number.isFinite(num(latest.manualPct)) && num(latest.manualPct)>0) ? 1 : 0;
+
+      return q;
+    }
+
+    function computeAbmNeeds(latest){
+      if(!ABM_NEEDS || !latest) return [];
+      const qScores = computeQScoresFromSnapshot(latest);
+      const out=[];
+      const threshold = Number(ABM_NEEDS.threshold ?? 0.5);
+
+      for(const n of (ABM_NEEDS.needs || [])){
+        const id = n.Need_ID;
+        const row = ABM_NEEDS.matrix ? ABM_NEEDS.matrix[id] : null;
+        if(!row) continue;
+        let sum=0, cnt=0;
+        const touched=[];
+        for(const qk of (ABM_NEEDS.questions || [])){
+          if(!row[qk]) continue;
+          const s = Number(qScores[qk]);
+          if(!Number.isFinite(s)) continue;
+          sum += s; cnt += 1;
+          touched.push(qk);
+        }
+        if(!cnt) continue;
+        const score = sum/cnt;
+        if(score >= threshold){
+          out.push({
+            title: n.Need_Name || id,
+            text: `Контур: ${n.Contour || '—'} • Роль: ${n.Role || '—'}\nСигналы: ${touched.slice(0,6).join(', ')}${touched.length>6?'…':''}\nУровень боли: ${Math.round(score*100)}%`
+          });
+        }
+      }
+      return out.sort((a,b)=> (b.text||'').localeCompare(a.text||''));
+    }
+
+
+    async function renderConclusions(latest){
+      await loadSalesRules();
+      await loadAbmNeeds();
       const box = document.getElementById('args');
       if(!box) return;
       box.innerHTML='';
       const items = (CURRENT_MODE==='presales') ? computePreSalesTips(latest) : computeSalesArguments(latest, 12);
-      if(!items.length){
+      const abmItems = (CURRENT_MODE==='sales') ? computeAbmNeeds(latest) : [];
+      if(!items.length && !abmItems.length){
         const empty = document.createElement('div');
         empty.className='muted';
         empty.style.fontSize='13px';
@@ -749,6 +836,22 @@
         row.className='li';
         row.innerHTML = `<div style="font-weight:800">${escapeHtml(it.title||'')}</div><div class="muted" style="margin-top:4px; white-space:pre-line">${escapeHtml(it.text||'')}</div>`;
         box.appendChild(row);
+      }
+
+      if(abmItems.length){
+        const sep=document.createElement('div');
+        sep.style.height='1px'; sep.style.background='var(--line)'; sep.style.margin='12px 0';
+        box.appendChild(sep);
+        const h=document.createElement('div');
+        h.style.fontWeight='900'; h.style.marginBottom='8px';
+        h.textContent='ABM: активные бизнес‑потребности';
+        box.appendChild(h);
+        for(const it of abmItems.slice(0,8)){
+          const row=document.createElement('div');
+          row.className='li';
+          row.innerHTML = `<div style="font-weight:800">${escapeHtml(it.title||'')}</div><div class="muted" style="margin-top:4px; white-space:pre-line">${escapeHtml(it.text||'')}</div>`;
+          box.appendChild(row);
+        }
       }
     }
 
