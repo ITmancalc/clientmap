@@ -4196,20 +4196,22 @@ function buildSheetPayloadExact(){
       : _numFromText(raw);
   });
 
+
   // ===== Derived blocks shown on Indexes page (Risk/Readiness/Heatmap/COI breakdown) =====
   // These must be sent in *snake_case* to match Google Sheets headers.
   // When saving from "Полная карта", we take values from the rendered widgets.
-  function _numOrEmpty(v){
-    const n = _numFromText(v);
-    return (Number.isFinite(n) ? n : "");
-  }
   function _textOrEmpty(id){
     const el = document.getElementById(id);
-    return el ? (el.value ?? el.textContent ?? "").trim() : "";
+    return el ? String(el.value ?? el.textContent ?? "").trim() : "";
+  }
+  function _numTextOrEmpty(id){
+    // Extract numeric token from text like "60%", "61 692 160 ₽", "—"
+    const s = _numFromText(_textOrEmpty(id));
+    return s === "" ? "" : s; // keep as string for sheets
   }
 
   // Readiness / problem / config / demo
-  out.pilot_readiness_pct = _numOrEmpty(_textOrEmpty("pilotReady"));
+  out.pilot_readiness_pct = _numTextOrEmpty("pilotReady");
   out.main_problem_zone   = _textOrEmpty("mainProblem");
   // "Рекомендуемая конфигурация" — value lives in #recModules, container is #kModules
   out.rec_modules         = _textOrEmpty("recModules") || _textOrEmpty("kModules");
@@ -4217,18 +4219,16 @@ function buildSheetPayloadExact(){
   out.demo_focus          = _textOrEmpty("demoFocusHint") || _textOrEmpty("demoFocus");
 
   // Heatmap (4 zones)
-  out.risk_grey_pct = _numOrEmpty(_textOrEmpty("riskGreyPct"));
-  out.risk_lic_pct  = _numOrEmpty(_textOrEmpty("riskLicPct"));
-  out.risk_ops_pct  = _numOrEmpty(_textOrEmpty("riskOpsPct"));
-  out.risk_gov_pct  = _numOrEmpty(_textOrEmpty("riskGovPct"));
+  out.risk_grey_pct = _numTextOrEmpty("riskGreyPct");
+  out.risk_lic_pct  = _numTextOrEmpty("riskLicPct");
+  out.risk_ops_pct  = _numTextOrEmpty("riskOpsPct");
+  out.risk_gov_pct  = _numTextOrEmpty("riskGovPct");
 
   // Cost of Inaction breakdown
-  out.coi_license_loss  = _numOrEmpty(_textOrEmpty("coiLic"));
-  out.coi_downtime_loss = _numOrEmpty(_textOrEmpty("coiDown"));
-  out.coi_manual_loss   = _numOrEmpty(_textOrEmpty("coiManual"));
-  out.coi_total_loss    = _numOrEmpty(_textOrEmpty("coiTotal"));
-
-
+  out.coi_license_loss  = _numTextOrEmpty("coiLic");
+  out.coi_downtime_loss = _numTextOrEmpty("coiDown");
+  out.coi_manual_loss   = _numTextOrEmpty("coiManual");
+  out.coi_total_loss    = _numTextOrEmpty("coiTotal");
 
   // Counts
   const techRows=[...document.querySelectorAll("#techTbody tr")];
