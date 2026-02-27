@@ -5750,6 +5750,32 @@ function syncToGoogleSheets(){
     }, {capture:true});
   }catch(_e){}
 })();
+
+
+/* Mirror main company input (#company) to QuickDock search (#dockCompany) so автоподбор работал как на других листах */
+(function(){
+  try{
+    const main = document.getElementById('company');
+    const dock = document.getElementById('dockCompany');
+    if(!main || !dock) return;
+
+    // if user types in main input, forward to dock input so same suggest engine is used
+    main.addEventListener('input', ()=>{
+      dock.value = main.value;
+      dock.dispatchEvent(new Event('input', {bubbles:true}));
+    });
+
+    main.addEventListener('keydown', (ev)=>{
+      if(ev.key==='Enter'){
+        dock.value = main.value.trim();
+        dock.dispatchEvent(new KeyboardEvent('keydown', {key:'Enter', bubbles:true}));
+      }
+    });
+
+    // also keep main in sync if dock changed by suggestion click
+    dock.addEventListener('input', ()=>{ main.value = dock.value; });
+  }catch(_e){}
+})();
 </script>
 
 </body>
