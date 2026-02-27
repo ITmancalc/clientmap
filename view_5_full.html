@@ -2974,32 +2974,6 @@ function flattenForSheets(raw){
   return out;
 }
 
-// === Preserve derived KPI fields across pages ===
-// Some pages don't render Risk/Heatmap/COI breakdown blocks. When saving from those pages,
-// empty derived fields would overwrite values in a new row. We fetch latest row for the
-// same company and fill missing derived fields before saving.
-async function _mergeDerivedFromLatest(url, payload){
-  try{
-    const company = (payload && (payload.company || (payload.meta && payload.meta.company))) ? String(payload.company || payload.meta.company).trim() : "";
-    if(!company) return payload;
-    const latestUrl = url + (url.includes("?") ? "&" : "?") + "action=latest&company=" + encodeURIComponent(company) + "&_ts=" + Date.now();
-    const r = await fetch(latestUrl, { method:"GET", credentials:"omit" });
-    if(!r.ok) return payload;
-    const latest = await r.json();
-    if(!latest || typeof latest !== "object") return payload;
-    const keys = ["risk_grey_pct", "risk_lic_pct", "risk_ops_pct", "risk_gov_pct", "pilot_readiness_pct", "main_problem_zone", "rec_modules", "demo_focus", "coi_license_loss", "coi_downtime_loss", "coi_manual_loss", "coi_total_loss"];
-    for(const k of keys){
-      const cur = payload[k];
-      const isEmpty = (cur === undefined || cur === null || (typeof cur === "string" && cur.trim() === ""));
-      if(isEmpty && latest[k] !== undefined && latest[k] !== null && String(latest[k]).trim() !== "") {
-        payload[k] = latest[k];
-      }
-    }
-  }catch(e){ /* keep silent */ }
-  return payload;
-}
-
-
 
 
 
@@ -3253,10 +3227,7 @@ async function syncToGoogleSheets(reason){
       payloadRaw.audit.syncReason = reason || "manual";
       payloadRaw.audit.syncedAt = new Date().toISOString();
 
-      let payload = flattenForSheets(payloadRaw);
-
-      payload = await _mergeDerivedFromLatest(url, payload);
-
+      const payload = flattenForSheets(payloadRaw);
 
       if(st){
         st.style.display="block";
@@ -4224,6 +4195,40 @@ function buildSheetPayloadExact(){
       ? raw
       : _numFromText(raw);
   });
+
+  // ===== Derived blocks shown on Indexes page (Risk/Readiness/Heatmap/COI breakdown) =====
+  // These must be sent in *snake_case* to match Google Sheets headers.
+  // When saving from "Полная карта", we take values from the rendered widgets.
+  function _numOrEmpty(v){
+    const n = _numFromText(v);
+    return (Number.isFinite(n) ? n : "");
+  }
+  function _textOrEmpty(id){
+    const el = document.getElementById(id);
+    return el ? (el.value ?? el.textContent ?? "").trim() : "";
+  }
+
+  // Readiness / problem / config / demo
+  out.pilot_readiness_pct = _numOrEmpty(_textOrEmpty("pilotReady"));
+  out.main_problem_zone   = _textOrEmpty("mainProblem");
+  // "Рекомендуемая конфигурация" — value lives in #recModules, container is #kModules
+  out.rec_modules         = _textOrEmpty("recModules") || _textOrEmpty("kModules");
+  // "Приоритет демо" — hint lives in #demoFocusHint (value in #demoFocus)
+  out.demo_focus          = _textOrEmpty("demoFocusHint") || _textOrEmpty("demoFocus");
+
+  // Heatmap (4 zones)
+  out.risk_grey_pct = _numOrEmpty(_textOrEmpty("riskGreyPct"));
+  out.risk_lic_pct  = _numOrEmpty(_textOrEmpty("riskLicPct"));
+  out.risk_ops_pct  = _numOrEmpty(_textOrEmpty("riskOpsPct"));
+  out.risk_gov_pct  = _numOrEmpty(_textOrEmpty("riskGovPct"));
+
+  // Cost of Inaction breakdown
+  out.coi_license_loss  = _numOrEmpty(_textOrEmpty("coiLic"));
+  out.coi_downtime_loss = _numOrEmpty(_textOrEmpty("coiDown"));
+  out.coi_manual_loss   = _numOrEmpty(_textOrEmpty("coiManual"));
+  out.coi_total_loss    = _numOrEmpty(_textOrEmpty("coiTotal"));
+
+
 
   // Counts
   const techRows=[...document.querySelectorAll("#techTbody tr")];
