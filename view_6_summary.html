@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>ИТМен — Выводы</title>
   <script src="config.js"></script>
-  <script src="build_info.js?v=v91"></script>
+  <script src="build_info.js?v=v93"></script>
   <script src="question_bank.js"></script>
   <style>
     :root{
@@ -300,10 +300,7 @@
   </div>
 
   <!-- Chart.js (CDN). Note: source-map fetch may be blocked by CSP, but the library itself works. -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/date-fns@2.30.0/dist/date-fns.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
-  <script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>  <script>
     const WEBAPP_URL = (window.GS_WEBAPP_URL || "").trim();
     document.getElementById('gsUrlLabel').textContent = WEBAPP_URL ? 'задан' : 'не задан';
     console.log("✅ Using Google Sheets WebApp URL:", WEBAPP_URL);
@@ -529,12 +526,7 @@
             }
           },
           scales:{
-            x:{
-              type:'time',
-              time:{ unit:'day', tooltipFormat:'yyyy-MM-dd HH:mm' },
-              ticks:{ autoSkip:true, maxTicksLimit: 10 },
-              grid:{ color:'rgba(15,23,42,.06)' }
-            },
+            x:{ type:'category', ticks:{ autoSkip:true, maxTicksLimit:10, maxRotation:45, minRotation:0 }, grid:{ color:'rgba(15,23,42,.06)' } },
             y:{
               beginAtZero:true,
               max:100,
@@ -1318,9 +1310,15 @@ async function loadSummary(company){
       }
 
       const c = ensureChart();
+      const labels = normItems.map((it, idx)=>{
+        const d = getTs(it, idx);
+        try{ return d.toLocaleDateString('ru-RU'); }catch(e){ return String(d); }
+      });
+      c.data.labels = labels;
       c.data.datasets.forEach(ds=>{
         const id = ds._id;
-        ds.data = normItems.map((it, idx)=>({ x: getTs(it, idx), y: getVal(it, id) }));
+        ds.spanGaps = true;
+        ds.data = normItems.map((it, idx)=> getVal(it, id));
       });
       c.update();
 
