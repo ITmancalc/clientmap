@@ -4175,8 +4175,8 @@ function buildSheetPayloadExact(){
   try{
     out.pilot_readiness_pct = _numFromText(_val('pilotReady'));
     out.main_problem_zone   = String(_val('mainProblem')||'').trim();
-    out.rec_modules         = String(_val('recModules')||'').trim();
-    out.demo_focus          = String(_val('demoFocus')||'').trim();
+    out.rec_modules         = String(_val('kModules')||'').trim();
+    out.demo_focus          = String(_val('demoFocusHint')||'').trim();
 
     out.risk_grey_pct = _numFromText(_val('riskGreyPct'));
     out.risk_lic_pct  = _numFromText(_val('riskLicPct'));
@@ -4817,6 +4817,66 @@ async function gsSearch(q){
     }catch(e){
       console.warn("applyPayload maturity/risk fill failed", e);
     }
+
+    // Map derived metrics stored in Sheets (snake_case) -> UI spans (camelCase).
+    // btnRecalc click may not compute these on the Indices page (because it doesn't have the full source answers),
+    // so we explicitly render them from payload when present.
+    try{
+      const fmtPct = (v)=>{
+        const n = Number(v);
+        if(!isFinite(n)) return "—%";
+        return `${Math.round(n)}%`;
+      };
+      const fmtRub = (v)=>{
+        const n = Number(v);
+        if(!isFinite(n)) return "—";
+        const s = String(Math.round(n));
+        return s.replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+      };
+      const setText = (id, text)=>{
+        const el = document.getElementById(id);
+        if(el) el.textContent = text;
+      };
+const setText = (id, text)=>{
+        const el = document.getElementById(id);
+        if(el) el.textContent = text;
+      };
+
+      const setBar = (id, pct)=>{
+        const el = document.getElementById(id);
+        const n = Number(pct);
+        if(!el) return;
+        if(!isFinite(n)) { el.style.width = "0%"; return; }
+        const clamped = Math.max(0, Math.min(100, n));
+        el.style.width = clamped + "%";
+      };
+
+      // Risk / readiness / heatmap
+      if(payload.pilot_readiness_pct!=null && payload.pilot_readiness_pct!=="") setText("pilotReady", fmtPct(payload.pilot_readiness_pct));
+      if(payload.main_problem_zone!=null && payload.main_problem_zone!=="") setText("mainProblem", String(payload.main_problem_zone));
+      if(payload.rec_modules!=null && payload.rec_modules!=="") setText("kModules", String(payload.rec_modules));
+      if(payload.demo_focus!=null && payload.demo_focus!=="") setText("demoFocusHint", String(payload.demo_focus));
+
+      if(payload.risk_grey_pct!=null && payload.risk_grey_p
+      // also render heatmap bars
+      if(payload.risk_grey_pct!=null && payload.risk_grey_pct!=="") setBar("riskGreyBar", payload.risk_grey_pct);
+      if(payload.risk_lic_pct!=null && payload.risk_lic_pct!=="")  setBar("riskLicBar",  payload.risk_lic_pct);
+      if(payload.risk_ops_pct!=null && payload.risk_ops_pct!=="")  setBar("riskOpsBar",  payload.risk_ops_pct);
+      if(payload.risk_gov_pct!=null && payload.risk_gov_pct!=="")  setBar("riskGovBar",  payload.risk_gov_pct);
+ct!=="") setText("riskGreyPct", fmtPct(payload.risk_grey_pct));
+      if(payload.risk_lic_pct!=null && payload.risk_lic_pct!=="")  setText("riskLicPct",  fmtPct(payload.risk_lic_pct));
+      if(payload.risk_ops_pct!=null && payload.risk_ops_pct!=="")  setText("riskOpsPct",  fmtPct(payload.risk_ops_pct));
+      if(payload.risk_gov_pct!=null && payload.risk_gov_pct!=="")  setText("riskGovPct",  fmtPct(payload.risk_gov_pct));
+
+      // COI breakdown
+      if(payload.coi_license_loss!=null && payload.coi_license_loss!=="")   setText("coiLic",    fmtRub(payload.coi_license_loss));
+      if(payload.coi_downtime_loss!=null && payload.coi_downtime_loss!=="") setText("coiDown",   fmtRub(payload.coi_downtime_loss));
+      if(payload.coi_manual_loss!=null && payload.coi_manual_loss!=="")     setText("coiManual", fmtRub(payload.coi_manual_loss));
+      if(payload.coi_total_loss!=null && payload.coi_total_loss!=="")       setText("coiTotal",  fmtRub(payload.coi_total_loss));
+    }catch(e){
+      console.warn("applyPayload derived render failed", e);
+    }
+
 
     // done
     window.__ITMEN_IS_LOADING = false;
