@@ -4169,6 +4169,27 @@ function buildSheetPayloadExact(){
       : _numFromText(raw);
   });
 
+  // === Heatmap / Risk & readiness / COI breakdown (persist to Sheets) ===
+  // На листе "Индексы" эти значения выводятся через textContent (<div>/<span>),
+  // поэтому их нужно явно добавлять в payload.
+  try{
+    out.pilot_readiness_pct = _numFromText(_val('pilotReady'));
+    out.main_problem_zone   = String(_val('mainProblem')||'').trim();
+    out.rec_modules         = String(_val('recModules')||'').trim();
+    out.demo_focus          = String(_val('demoFocus')||'').trim();
+
+    out.risk_grey_pct = _numFromText(_val('riskGreyPct'));
+    out.risk_lic_pct  = _numFromText(_val('riskLicPct'));
+    out.risk_ops_pct  = _numFromText(_val('riskOpsPct'));
+    out.risk_gov_pct  = _numFromText(_val('riskGovPct'));
+
+    out.coi_license_loss  = _numFromText(_val('coiLic'));
+    out.coi_downtime_loss = _numFromText(_val('coiDown'));
+    out.coi_manual_loss   = _numFromText(_val('coiManual'));
+    // Итого COI уже есть как coiTotal, но отдельно храним как явный ключ таблицы
+    out.coi_total_loss    = _numFromText(_val('coiTotal'));
+  }catch(e){ console.warn('heatmap/riskReady payload fill failed', e); }
+
   // Counts
   const techRows=[...document.querySelectorAll("#techTbody tr")];
   const procRows=[...document.querySelectorAll("#procTbody tr")];
@@ -4300,7 +4321,10 @@ function buildSheetPayloadExact(){
       keysRef.forEach(k=>{ if(out[k] === undefined && cache[k] !== undefined) out[k] = cache[k]; });
 
       // Critical keys: не затираем сохранённые значения пустотой при сохранении из частичных разделов
-      const __criticalKeys = ["sales_manager", "presale_manager", "lpr", "sources", "workplaces", "servers", "branches", "vdi", "closed", "envNote", "virt", "hostingModel", "adDomains", "netSeg", "terminalFarms", "hwAge", "hwAccounting", "redundancy", "psi2Score", "psi2Label", "techIndex", "procIndex", "riskIndex", "coiTotal", "recoverIndex", "busIndex", "obsolIndex", "aiIndex", "painIndex", "feasScore", "readyIndex", "readyLabel", "probIndex", "probLabel", "benchCount", "benchProfileLabel"];
+      const __criticalKeys = ["sales_manager", "presale_manager", "lpr", "sources", "workplaces", "servers", "branches", "vdi", "closed", "envNote", "virt", "hostingModel", "adDomains", "netSeg", "terminalFarms", "hwAge", "hwAccounting", "redundancy", "psi2Score", "psi2Label", "techIndex", "procIndex", "riskIndex", "coiTotal", "recoverIndex", "busIndex", "obsolIndex", "aiIndex", "painIndex", "feasScore", "readyIndex", "readyLabel", "probIndex", "probLabel", "benchCount", "benchProfileLabel",
+        // Heatmap / Risk & readiness / COI breakdown
+        "pilot_readiness_pct","main_problem_zone","rec_modules","demo_focus","risk_grey_pct","risk_lic_pct","risk_ops_pct","risk_gov_pct","coi_license_loss","coi_downtime_loss","coi_manual_loss","coi_total_loss"
+      ];
       __criticalKeys.forEach(k=>{
         if(out[k] === '' || out[k] === null || typeof out[k] === 'undefined'){
           const v = cache[k];
