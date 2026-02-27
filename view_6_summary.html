@@ -1297,19 +1297,19 @@ async function loadSummary(company){
 
       function getVal(it, id){
         const pick = (k)=>{
-          const v = it?.[k];
+          const v = (it?.[k] ?? it?.[String(k).toLowerCase()]);
           const s = String(v).replace(',', '.');
           const m = s.match(/-?\d+(?:\.\d+)?/);
           const n = m ? Number(m[0]) : NaN;
           return Number.isFinite(n) ? n : null;
         };
         // support both full keys and short aliases from Apps Script
-        if(id==='psi2Score') return pick('psi2Score') ?? pick('psi');
-        if(id==='techIndex') return pick('techIndex') ?? pick('tech');
-        if(id==='procIndex') return pick('procIndex') ?? pick('proc');
-        if(id==='riskIndex') return pick('riskIndex') ?? pick('risk');
-        if(id==='probIndex') return pick('probIndex') ?? pick('prob');
-        if(id==='readyIndex') return pick('readyIndex') ?? pick('ready');
+        if(id==='psi2Score') return pick('psi2Score') ?? pick('psi2score') ?? pick('psi');
+        if(id==='techIndex') return pick('techIndex') ?? pick('techindex') ?? pick('tech');
+        if(id==='procIndex') return pick('procIndex') ?? pick('procindex') ?? pick('proc');
+        if(id==='riskIndex') return pick('riskIndex') ?? pick('riskindex') ?? pick('risk_index') ?? pick('risk');
+        if(id==='probIndex') return pick('probIndex') ?? pick('probindex') ?? pick('prob');
+        if(id==='readyIndex') return pick('readyIndex') ?? pick('readyindex') ?? pick('ready');
         // the rest should exist as full keys
         return pick(id);
       }
@@ -1323,7 +1323,13 @@ async function loadSummary(company){
       c.data.datasets.forEach(ds=>{
         const id = ds._id;
         ds.spanGaps = true;
-        ds.data = normItems.map((it, idx)=> getVal(it, id));
+        ds.data = normItems.map((it, idx)=> {
+          const v = getVal(it, id);
+          if(v==null) return null;
+          // Some rows store indices as 0..1 fractions; normalize to 0..100 for charts
+          if(typeof v==='number' && v>=0 && v<=1 && (id==='psi2Score' || /Index$/.test(id))) return v*100;
+          return v;
+        });
       });
       c.update();
 
