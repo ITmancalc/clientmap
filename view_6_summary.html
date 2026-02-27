@@ -490,7 +490,8 @@
           label: s.label,
           _id: s.id,
           data: [],
-          parsing: false,
+          // data is an array of numbers aligned with chart labels.
+          // (parsing:false expects pre-parsed {x,y} points and would render an empty chart)
           pointRadius: 0,
           borderWidth: CORE_IDS.has(s.id) ? 3 : 2,
           tension: 0.35,
