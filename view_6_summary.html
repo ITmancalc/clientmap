@@ -1307,7 +1307,7 @@ async function loadSummary(company){
         if(id==='psi2Score') return pick('psi2Score') ?? pick('psi2score') ?? pick('psi');
         if(id==='techIndex') return pick('techIndex') ?? pick('techindex') ?? pick('tech');
         if(id==='procIndex') return pick('procIndex') ?? pick('procindex') ?? pick('proc');
-        if(id==='riskIndex') return pick('riskIndex') ?? pick('riskindex') ?? pick('risk_index') ?? pick('risk');
+        if(id==='riskIndex') return pick('riskIndex') ?? pick('riskindex') ?? pick('risk_index') ?? pick('riskindex_pct') ?? pick('risk_index_pct');
         if(id==='probIndex') return pick('probIndex') ?? pick('probindex') ?? pick('prob');
         if(id==='readyIndex') return pick('readyIndex') ?? pick('readyindex') ?? pick('ready');
         // the rest should exist as full keys

@@ -804,6 +804,7 @@ label:has(#company) .reqDot, label:has(#company) .requiredDot, label:has(#compan
 <div class="stat" id="kProb">
 <div class="label">Вероятность сделки</div>
 <div class="value mono" id="probIndex">—%</div>
+<input type="hidden" id="riskIndex" value=""/>
 <div class="small" id="probLabel">—</div>
 </div>
 <div class="kpiBar riskReady" style="margin-top:8px">
@@ -2472,6 +2473,10 @@ const procIndex = (procAnswered.length>0)
 const riskIndex = (riskAnswered.length>0)
   ? riskAnswered.reduce((a,b)=>a+b,0)
   : (modeTop==="client" ? NaN : Math.round(clamp(estM.riskProb.v,0,1)*riskSel.length));
+
+// Persist riskIndex as percent (0..100) for saving / charts
+const riskIndexPct = (isFinite(riskIndex) && riskSel && riskSel.length) ? Math.round((riskIndex / Math.max(1,riskSel.length))*100) : NaN;
+try{ const _ri=document.getElementById('riskIndex'); if(_ri) _ri.value = (isFinite(riskIndexPct)? String(riskIndexPct): ''); }catch(_e){}
 
   setText("techIndex", isFinite(techIndex)? `${techIndex}%` : "—%");
   setText("procIndex", isFinite(procIndex)? `${procIndex}%` : "—%");
