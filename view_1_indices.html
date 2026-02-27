@@ -5656,5 +5656,101 @@ function syncToGoogleSheets(){
   }
 })();
 </script>
+
+<script>
+/* Defensive re-bind for QuickDock search (keeps search working even if earlier scripts fail) */
+(function(){
+  try{
+    const WEBAPP_URL = (window.GS_WEBAPP_URL || window.GOOGLE_SHEETS_WEBAPP_URL || window.WEBAPP_URL || "").trim();
+    const dockCompany = document.getElementById('dockCompany');
+    const dockSuggest = document.getElementById('dockSuggest');
+    const dockLoadBtn = document.getElementById('dockLoadBtn');
+    if(!dockCompany) return;
+
+    function jsonp(url, timeoutMs=15000){
+      return new Promise((resolve, reject)=>{
+        const cb = 'cb_' + Math.random().toString(36).slice(2);
+        const s = document.createElement('script');
+        const t = setTimeout(()=>{ cleanup(); reject(new Error('JSONP timeout')); }, timeoutMs);
+        function cleanup(){
+          clearTimeout(t);
+          try{ delete window[cb]; }catch(e){ window[cb]=undefined; }
+          if(s.parentNode) s.parentNode.removeChild(s);
+        }
+        window[cb] = (data)=>{ cleanup(); resolve(data); };
+        const sep = url.includes('?') ? '&' : '?';
+        s.src = url + sep + 'callback=' + encodeURIComponent(cb);
+        s.onerror = ()=>{ cleanup(); reject(new Error('JSONP error')); };
+        document.body.appendChild(s);
+      });
+    }
+
+    function navToCompany(c){
+      const u = new URL(location.href);
+      if(c) u.searchParams.set('company', c); else u.searchParams.delete('company');
+      location.href = u.toString();
+    }
+
+    function setCompanyInLinks(company){
+      const qs = company ? ('?company='+encodeURIComponent(company)) : '';
+      document.querySelectorAll('.quickDock a.tool').forEach(a=>{
+        const href = a.getAttribute('href') || '';
+        if(!href || href.startsWith('http')) return;
+        const clean = href.split('?')[0];
+        a.setAttribute('href', clean + qs);
+      });
+    }
+
+    // Ensure Enter navigation always works
+    dockCompany.addEventListener('keydown', (ev)=>{
+      if(ev.key === 'Enter'){
+        ev.preventDefault();
+        const c = dockCompany.value.trim();
+        navToCompany(c);
+      }
+    }, {capture:true});
+
+    if(dockLoadBtn){
+      dockLoadBtn.addEventListener('click', ()=>{
+        const c = dockCompany.value.trim();
+        navToCompany(c);
+      }, {capture:true});
+    }
+
+    // Suggestions
+    let timer=null;
+    dockCompany.addEventListener('input', ()=>{
+      clearTimeout(timer);
+      const q = dockCompany.value.trim();
+      setCompanyInLinks(q);
+      if(!dockSuggest) return;
+      if(q.length < 3){ dockSuggest.style.display='none'; dockSuggest.innerHTML=''; return; }
+      timer = setTimeout(async ()=>{
+        if(!WEBAPP_URL) return;
+        try{
+          const data = await jsonp(WEBAPP_URL + '?action=search&q=' + encodeURIComponent(q) + '&limit=10');
+          const items = (data && data.ok && Array.isArray(data.items)) ? data.items : [];
+          if(!items.length){ dockSuggest.style.display='none'; dockSuggest.innerHTML=''; return; }
+          dockSuggest.innerHTML = items.map(it=>{
+            const name = (it.company||'').replaceAll('"','&quot;');
+            return '<div class="dockItem" data-company="'+name+'"><div style="font-weight:800">'+name+'</div></div>';
+          }).join('');
+          dockSuggest.style.display='block';
+          dockSuggest.querySelectorAll('.dockItem').forEach(el=>{
+            el.addEventListener('click', ()=>{
+              const c = el.getAttribute('data-company') || '';
+              dockCompany.value = c;
+              dockSuggest.style.display='none';
+              dockSuggest.innerHTML='';
+              navToCompany(c);
+            });
+          });
+        }catch(_e){}
+      }, 250);
+    }, {capture:true});
+  }catch(_e){}
+})();
+</script>
+
 </body>
 </html>

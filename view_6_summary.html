@@ -439,17 +439,17 @@
     let chart = null;
     const INDEX_SERIES = [
       { id:'psi2Score', label:'PSI' },
-      { id:'probIndex', label:'Prob' },
-      { id:'riskIndex', label:'Risk' },
-      { id:'techIndex', label:'Tech' },
-      { id:'procIndex', label:'Proc' },
-      { id:'readyIndex', label:'Ready' },
-      { id:'feasScore', label:'Feas' },
-      { id:'recoverIndex', label:'Recover' },
-      { id:'busIndex', label:'Business' },
-      { id:'obsolIndex', label:'Obsol' },
-      { id:'aiIndex', label:'AI' },
-      { id:'painIndex', label:'Pain' },
+      { id:'probIndex', label:'Вероятн.' },
+      { id:'riskIndex', label:'Риск' },
+      { id:'techIndex', label:'Тех.' },
+      { id:'procIndex', label:'Проц.' },
+      { id:'readyIndex', label:'Готовн.' },
+      { id:'feasScore', label:'Реализ.' },
+      { id:'recoverIndex', label:'Восст.' },
+      { id:'busIndex', label:'Бизнес' },
+      { id:'obsolIndex', label:'Устар.' },
+      { id:'aiIndex', label:'ИИ' },
+      { id:'painIndex', label:'Боль' },
     ];
 
     const CORE_IDS = new Set(['psi2Score','probIndex','riskIndex']);
@@ -726,7 +726,9 @@
     }
 
     function num(v){
-      const n = Number(String(v).replace(',', '.'));
+      const s = String(v).replace(',', '.');
+          const m = s.match(/-?\d+(?:\.\d+)?/);
+          const n = m ? Number(m[0]) : NaN;
       return Number.isFinite(n) ? n : NaN;
     }
 
@@ -1296,7 +1298,9 @@ async function loadSummary(company){
       function getVal(it, id){
         const pick = (k)=>{
           const v = it?.[k];
-          const n = Number(String(v).replace(',', '.'));
+          const s = String(v).replace(',', '.');
+          const m = s.match(/-?\d+(?:\.\d+)?/);
+          const n = m ? Number(m[0]) : NaN;
           return Number.isFinite(n) ? n : null;
         };
         // support both full keys and short aliases from Apps Script
