@@ -4654,9 +4654,9 @@ async function gsSearch(q){
       if(!window.__ITMEN_LATEST_CACHE || typeof window.__ITMEN_LATEST_CACHE !== 'object') window.__ITMEN_LATEST_CACHE = {};
       window.__ITMEN_LATEST_CACHE = Object.assign({}, window.__ITMEN_LATEST_CACHE, payload);
     }catch(_e){}
-
-
     // 1) basic fields by id
+    // NOTE: on "Индексы" page a lot of KPI blocks are rendered as <div>/<span> (not inputs).
+    // When reverse-sync loading from Sheets we must populate both form controls and text KPI nodes.
     Object.entries(payload).forEach(([id, val]) => {
       const el = findElementByKey(id);
       if(!el) return;
@@ -4671,16 +4671,25 @@ async function gsSearch(q){
         return;
       }
 
-      // select/input/textarea
       if (val === null || val === undefined) return;
-      if (typeof val === "object") {
-        // try stringify for unknown objects
-        try { el.value = JSON.stringify(val); } catch(e) { el.value = String(val); }
+
+      // If element supports .value (inputs/select/textarea), set it as before.
+      // Otherwise, it's a KPI text node (<div>/<span>/etc.) — set textContent.
+      const isValueControl = ("value" in el) && (
+        el.tagName === "INPUT" || el.tagName === "SELECT" || el.tagName === "TEXTAREA"
+      );
+
+      const asText = (typeof val === "object")
+        ? (()=>{ try { return JSON.stringify(val); } catch(e){ return String(val); } })()
+        : String(val);
+
+      if (isValueControl) {
+        el.value = asText;
+        el.dispatchEvent(new Event("input", { bubbles:true }));
+        el.dispatchEvent(new Event("change", { bubbles:true }));
       } else {
-        el.value = String(val);
+        el.textContent = asText;
       }
-      el.dispatchEvent(new Event("input", { bubbles:true }));
-      el.dispatchEvent(new Event("change", { bubbles:true }));
     });
 
     // 2) virt multiselect special handling (if payload.virt is array or comma string)
