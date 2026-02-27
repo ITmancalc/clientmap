@@ -915,12 +915,13 @@ const suggestBox = document.getElementById('suggestBox');
 
     
     async function renderConclusions(latest){
-      await loadSalesRules();
-      
-      // показать лоудер, если запрос медленный (без мерцания)
-      if(__glTimer) { clearTimeout(__glTimer); __glTimer = null; }
-      __glTimer = setTimeout(()=>showGlobalLoader("Загружаю данные…","Подтягиваем историю компании и последний слепок."), 250);
-await loadAbmNeeds();
+      // Выводы строим локально. Оверлей тут НЕ показываем (иначе может зависнуть).
+      try{
+        await loadSalesRules();
+	  await loadAbmNeeds();
+      }catch(_e){
+        // молча: выводы просто будут беднее
+      }
 
       const tldrEl = document.getElementById('argsTLDR');
       const secEl  = document.getElementById('argsSections');
@@ -1213,44 +1214,54 @@ await loadAbmNeeds();
       el.style.display = "none";
     }
 
-let __summaryToken = 0;
-async function loadSummary(company){
-      const myToken = ++__summaryToken;
+	let __summaryToken = 0;
+	let __summaryHardTimeout = null;
+	async function loadSummary(company){
+	      const myToken = ++__summaryToken;
 
-      clearErr();
-      if(!company){ showErr('Выберите компанию.'); return; }
-      if(!WEBAPP_URL){ showErr('GS_WEBAPP_URL пустой (config.js).'); return; }
-      updateLinks(company);
+	      clearErr();
+	      if(!company){ showErr('Выберите компанию.'); return; }
+	      if(!WEBAPP_URL){ showErr('GS_WEBAPP_URL пустой (config.js).'); return; }
+	      updateLinks(company);
 
-      await loadSalesRules();
+	      // Гарантия: оверлей не может висеть бесконечно
+	      if(__summaryHardTimeout) clearTimeout(__summaryHardTimeout);
+	      __summaryHardTimeout = setTimeout(()=>{
+	        if(myToken === __summaryToken){
+	          hideGlobalLoader();
+	          showErr('Загрузка данных зависла. Проверь Apps Script (action=history) или попробуй ещё раз.');
+	        }
+	      }, 25000);
 
-      
-      // показать лоудер, если запрос медленный (без мерцания)
-      if(__glTimer) { clearTimeout(__glTimer); __glTimer = null; }
-      __glTimer = setTimeout(()=>showGlobalLoader("Загружаю данные…","Подтягиваем историю компании и последний слепок."), 250);
-// Local cache by company
-      const cacheKey = 'itmen_summary_'+company;
-      const cached = localStorage.getItem(cacheKey);
-      if(cached){
-        try{ renderSummary(JSON.parse(cached), company, true); }catch(_e){}
-      }
+	      // показать лоудер, если запрос медленный (без мерцания)
+	      if(__glTimer) { clearTimeout(__glTimer); __glTimer = null; }
+	      __glTimer = setTimeout(()=>showGlobalLoader("Загружаю данные…","Подтягиваем историю компании и последний слепок."), 300);
 
-      try{
-        document.getElementById('histMeta').textContent = 'загрузка…';
-        const url = WEBAPP_URL + '?action=history&company=' + encodeURIComponent(company) + '&limit=400';
-        const data = await jsonp(url, 20000);
-        if(myToken !== __summaryToken) return; // cancelled by newer request
-        if(!data || !data.ok){ showErr('Не удалось получить историю компании (action=history). Проверь Apps Script.'); return; }
-        localStorage.setItem(cacheKey, JSON.stringify(data));
-        renderSummary(data, company, false);
-      }catch(e){
-        showErr('Ошибка загрузки истории. Проверь доступность Web App и права.');
-      }
-      finally{
-        if(__glTimer){ clearTimeout(__glTimer); __glTimer=null; }
-        hideGlobalLoader();
-      }
-    }
+	      // Local cache by company
+	      const cacheKey = 'itmen_summary_'+company;
+	      const cached = localStorage.getItem(cacheKey);
+	      if(cached){
+	        try{ renderSummary(JSON.parse(cached), company, true); }catch(_e){}
+	      }
+
+	      try{
+	        document.getElementById('histMeta').textContent = 'загрузка…';
+	        // меньше limit — быстрее и стабильнее
+	        const url = WEBAPP_URL + '?action=history&company=' + encodeURIComponent(company) + '&limit=120';
+	        const data = await jsonp(url, 16000);
+	        if(myToken !== __summaryToken) return; // cancelled by newer request
+	        if(!data || !data.ok){ showErr('Не удалось получить историю компании (action=history). Проверь Apps Script.'); return; }
+	        localStorage.setItem(cacheKey, JSON.stringify(data));
+	        renderSummary(data, company, false);
+	      }catch(e){
+	        showErr('Ошибка загрузки истории. Проверь доступность Web App и права.');
+	      }
+	      finally{
+	        if(__glTimer){ clearTimeout(__glTimer); __glTimer=null; }
+	        if(__summaryHardTimeout){ clearTimeout(__summaryHardTimeout); __summaryHardTimeout=null; }
+	        hideGlobalLoader();
+	      }
+	    }
 
     function renderSummary(data, company, fromCache){
       const items = Array.isArray(data.items) ? data.items : [];
