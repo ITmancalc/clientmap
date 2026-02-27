@@ -4219,10 +4219,34 @@ function buildSheetPayloadExact(){
   out.demo_focus          = _textOrEmpty("demoFocusHint") || _textOrEmpty("demoFocus");
 
   // Heatmap (4 zones)
-  out.risk_grey_pct = _numTextOrEmpty("riskGreyPct");
-  out.risk_lic_pct  = _numTextOrEmpty("riskLicPct");
-  out.risk_ops_pct  = _numTextOrEmpty("riskOpsPct");
-  out.risk_gov_pct  = _numTextOrEmpty("riskGovPct");
+  // NOTE: on some builds the visible % lives only in bar width (style.width) while the label can be empty.
+  function _pctFromBar(barId){
+    const el = document.getElementById(barId);
+    if(!el) return "";
+    const w = (el.style && el.style.width) ? String(el.style.width) : "";
+    const m = w.match(/([0-9]+(?:\.[0-9]+)?)\s*%/);
+    if(m) return String(Math.round(parseFloat(m[1])));
+    // fallback: try computed width vs parent
+    try{
+      const p = el.parentElement;
+      if(p){
+        const ew = el.getBoundingClientRect().width;
+        const pw = p.getBoundingClientRect().width;
+        if(pw > 0){
+          return String(Math.round((ew/pw)*100));
+        }
+      }
+    }catch(_e){}
+    return "";
+  }
+  function _pctTextOrBar(pctId, barId){
+    const t = _numTextOrEmpty(pctId);
+    return t !== "" ? t : _pctFromBar(barId);
+  }
+  out.risk_grey_pct = _pctTextOrBar("riskGreyPct","riskGreyBar");
+  out.risk_lic_pct  = _pctTextOrBar("riskLicPct","riskLicBar");
+  out.risk_ops_pct  = _pctTextOrBar("riskOpsPct","riskOpsBar");
+  out.risk_gov_pct  = _pctTextOrBar("riskGovPct","riskGovBar");
 
   // Cost of Inaction breakdown
   out.coi_license_loss  = _numTextOrEmpty("coiLic");
