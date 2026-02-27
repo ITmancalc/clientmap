@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>ИТМен — Выводы</title>
   <script src="config.js"></script>
-  <script src="build_info.js?v=v83"></script>
+  <script src="build_info.js?v=v85"></script>
   <script src="question_bank.js"></script>
   <style>
     :root{
@@ -66,6 +66,16 @@
     .search{
       width:100%; border:1px solid var(--line); background:#f2f4f8;
       padding:11px 12px 11px 38px; border-radius:12px; outline:none; font-size:14px;
+
+    .dockSpin{
+      position:absolute; right:10px; top:50%; transform:translateY(-50%);
+      width:18px; height:18px; border-radius:50%;
+      border:2px solid #d6d9e2; border-top-color: var(--accent);
+      display:none; animation:spin .8s linear infinite;
+    }
+    .dockSpin.on{display:block;}
+    @keyframes spin{to{transform:translateY(-50%) rotate(360deg)}}
+
     }
     .btn{
       background:var(--accent); color:white; border:none;
@@ -408,12 +418,17 @@
     });
 
     async function runSearch(q){
+      companySpin.classList.add('on');
       if(!WEBAPP_URL){ showErr('GS_WEBAPP_URL пустой (config.js).'); return; }
       try{
         const url = WEBAPP_URL + '?action=search&q=' + encodeURIComponent(q) + '&limit=25';
         const data = await jsonp(url);
         if(!data || !data.ok){ showErr('Поиск: ошибка ответа Apps Script (action=search).'); return; }
-        const items = Array.isArray(data.items) ? data.items : [];
+        let items = Array.isArray(data.items) ? data.items : [];
+      if(!items.length && data && (data.latest||data.item)){
+        const l = data.latest || data.item;
+        if(l) items = [{...l, timestamp: l.timestamp || new Date().toISOString()}];
+      }
         if(!items.length && !abmItems.length){ suggestBox.style.display='none'; suggestBox.innerHTML=''; return; }
 
         const map = new Map();
@@ -453,7 +468,7 @@
       finally{
         if(__glTimer){ clearTimeout(__glTimer); __glTimer=null; }
         hideGlobalLoader();
-        if(companySpin) companySpin.style.display='none';
+        if(companySpin) companySpin.classList.remove('on');
       }
     }
 
@@ -763,7 +778,8 @@
     }
 
     function num(v){
-      const n = Number(String(v).replace(',', '.'));
+      const s = String(v ?? '').replace(',', '.').replace(/%/g,'').trim();
+          const n = Number(s);
       return Number.isFinite(n) ? n : NaN;
     }
 
@@ -1253,36 +1269,65 @@ async function loadSummary(company){
       if(!WEBAPP_URL){ showErr('GS_WEBAPP_URL пустой (config.js).'); return; }
       updateLinks(company);
 
+      // предотвратить параллельные запросы (двойные клики / автозагрузка)
+      window.__ITMEN_LOAD_TOKEN = (window.__ITMEN_LOAD_TOKEN||0) + 1;
+      const token = window.__ITMEN_LOAD_TOKEN;
+
+      // быстрый UX: показываем маленький лоудер в поиске + подпись у графика
+      if(companySpin) companySpin.classList.add('on');
+      document.getElementById('histMeta').textContent = 'загрузка…';
+
       await loadSalesRules();
 
-      
-      // показать лоудер, если запрос медленный (без мерцания)
-      if(__glTimer) { clearTimeout(__glTimer); __glTimer = null; }
-      __glTimer = setTimeout(()=>showGlobalLoader("Загружаю данные…","Подтягиваем историю компании и последний слепок."), 250);
-// Local cache by company
+      // 1) Сначала пробуем подтянуть "последний слепок" — чтобы KPI заполнились мгновенно
+      let latest = null;
+      try{
+        const urlLatest = WEBAPP_URL + '?action=latest&company=' + encodeURIComponent(company);
+        const dLatest = await jsonp(urlLatest, 12000);
+        if(dLatest && dLatest.ok){
+          latest = dLatest.item || dLatest.latest || null;
+        }
+      }catch(_e){ /* ignore */ }
+
+      if(token !== window.__ITMEN_LOAD_TOKEN) return;
+
+      // 2) История (график) — следом. Если истории нет, хотя бы рисуем 1 точку из latest
       const cacheKey = 'itmen_summary_'+company;
       const cached = localStorage.getItem(cacheKey);
       if(cached){
-        try{ renderSummary(JSON.parse(cached), company, true); }catch(_e){}
+        try{
+          const c = JSON.parse(cached);
+          // если кэш есть — сразу рисуем график, потом обновим из сети
+          if(latest && !c.latest) c.latest = latest;
+          renderSummary(c, company, true);
+        }catch(_e){}
+      }else if(latest){
+        renderSummary({ ok:true, items:[{...latest, timestamp: latest.timestamp || new Date().toISOString()}], latest }, company, true);
       }
 
       try{
-        document.getElementById('histMeta').textContent = 'загрузка…';
         const url = WEBAPP_URL + '?action=history&company=' + encodeURIComponent(company) + '&limit=400';
         const data = await jsonp(url, 20000);
-        if(!data || !data.ok){ showErr('Не удалось получить историю компании (action=history). Проверь Apps Script.'); return; }
+        if(token !== window.__ITMEN_LOAD_TOKEN) return;
+
+        if(!data || !data.ok){
+          // если history недоступна — оставим кэш/последний слепок
+          return;
+        }
+
+        // если Apps Script не прислал latest — подмешаем тот, что уже есть
+        if(latest && !data.latest) data.latest = latest;
+
         localStorage.setItem(cacheKey, JSON.stringify(data));
         renderSummary(data, company, false);
-      }catch(e){
-        showErr('Ошибка загрузки истории. Проверь доступность Web App и права.');
-      }
-      finally{
-        if(__glTimer){ clearTimeout(__glTimer); __glTimer=null; }
-        hideGlobalLoader();
+      }catch(_e){
+        // молча — KPI уже могли заполниться из latest/кэша
+      }finally{
+        if(companySpin) companySpin.classList.remove('on');
       }
     }
 
-    function renderSummary(data, company, fromCache){
+function renderSummary(data, company, fromCache){
       const items = Array.isArray(data.items) ? data.items : [];
       document.getElementById('histMeta').textContent = (items.length? (items.length+' сохранений') : 'нет данных') + (fromCache?' • кэш':'');
 
@@ -1307,7 +1352,8 @@ async function loadSummary(company){
       function getVal(it, id){
         const pick = (k)=>{
           const v = it?.[k];
-          const n = Number(String(v).replace(',', '.'));
+          const s = String(v ?? '').replace(',', '.').replace(/%/g,'').trim();
+          const n = Number(s);
           return Number.isFinite(n) ? n : null;
         };
         // support both full keys and short aliases from Apps Script
