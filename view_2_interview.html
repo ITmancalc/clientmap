@@ -4692,8 +4692,25 @@ async function gsSearch(q){
     try{ rebuildTablesFromFlat_(payload); }catch(e){ console.warn("rebuildTablesFromFlat_ failed", e); }
 
     // 4) kick recalculation (if button exists)
+    // IMPORTANT: loading a row from Google Sheets must NOT create a new row.
+    // Some pages bind btnRecalc click -> recalc() + syncToGoogleSheets().
+    // When we hydrate fields from an existing row we want the UI recalculated,
+    // but we must skip any sync (otherwise we duplicate rows and may distort data).
     const btn = document.getElementById("btnRecalc");
-    if(btn) btn.click();
+    if(btn){
+      const __origSync = window.syncToGoogleSheets;
+      try{
+        if(typeof __origSync === 'function'){
+          window.syncToGoogleSheets = async function(){
+            console.log("ℹ️ Sheets sync skipped (reverse-sync load)");
+            return;
+          };
+        }
+        btn.click();
+      } finally {
+        if(typeof __origSync === 'function') window.syncToGoogleSheets = __origSync;
+      }
+    }
     // 3) maturity tables (tech/proc) and risk table are stored in Sheets as tech_01_score etc.
     try{
       function pad2(n){ return String(n).padStart(2,"0"); }
