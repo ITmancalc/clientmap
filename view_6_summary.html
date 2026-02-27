@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>ИТМен — Выводы</title>
   <script src="config.js"></script>
-  <script src="build_info.js?v=v85"></script>
+  <script src="build_info.js?v=v86"></script>
   <script src="question_bank.js"></script>
   <style>
     :root{
@@ -31,6 +31,24 @@
       color:var(--text);
     }
     a{color:inherit; text-decoration:none}
+
+    .searchWrap{position:relative}
+    .searchSpin{
+      position:absolute;
+      right:12px;
+      top:50%;
+      transform:translateY(-50%);
+      width:16px;height:16px;
+      border-radius:999px;
+      border:2px solid rgba(15,23,42,.18);
+      border-top-color: rgba(239,68,68,.85);
+      animation: itspin .75s linear infinite;
+      display:none;
+      pointer-events:none;
+    }
+    .searchSpin.on{display:block}
+    @keyframes itspin{to{transform:translateY(-50%) rotate(360deg)}}
+
 
     .filters{display:flex; flex-wrap:wrap; gap:8px; margin:6px 0 10px}
     .chartWrap{height:540px; width:100%; border-top:1px solid var(--line); margin-top:10px; padding-top:10px}
@@ -66,16 +84,6 @@
     .search{
       width:100%; border:1px solid var(--line); background:#f2f4f8;
       padding:11px 12px 11px 38px; border-radius:12px; outline:none; font-size:14px;
-
-    .dockSpin{
-      position:absolute; right:10px; top:50%; transform:translateY(-50%);
-      width:18px; height:18px; border-radius:50%;
-      border:2px solid #d6d9e2; border-top-color: var(--accent);
-      display:none; animation:spin .8s linear infinite;
-    }
-    .dockSpin.on{display:block;}
-    @keyframes spin{to{transform:translateY(-50%) rotate(360deg)}}
-
     }
     .btn{
       background:var(--accent); color:white; border:none;
@@ -200,7 +208,8 @@
           <div class="sectionTitle">Быстрый вход</div>
           <div class="searchWrap">
             <div class="icon">🔎</div>
-            <input id="companyInput" class="search" placeholder="Введите компанию (начните печатать…)" autocomplete="off"/><div class="dockSpin" id="companySpin" aria-hidden="true"></div>
+            <div id="companySearchSpinner" class="searchSpin" aria-hidden="true"></div>
+            <input id="companyInput" class="search" placeholder="Введите компанию (начните печатать…)" autocomplete="off"/>
           </div>
           <div style="display:flex; gap:10px; margin-top:10px; flex-wrap:wrap">
             <button id="btnLoad" class="btn" style="flex:1">Загрузить</button>
@@ -265,7 +274,7 @@
             <a class="tool active" href="view_6_summary.html">
               <div class="tIcon">✅</div>
               <div>
-                <div class="tName">Выводы</div>
+                <div class="tName">C‑level вывод</div>
                 <div class="tDesc">итоги по компании</div>
               </div>
             </a>
@@ -406,9 +415,11 @@
     // Search
     const companyInput = document.getElementById('companyInput');
     const suggestBox = document.getElementById('suggestBox');
-      const companySpin = document.getElementById('companySpin');
     let selectedCompany = '';
     let searchTimer = null;
+    let searchSeq = 0;
+    const searchSpinEl = document.getElementById(\'companySearchSpinner\');
+    function setSearchLoading(on){ try{ if(on) searchSpinEl.classList.add(\'on\'); else searchSpinEl.classList.remove(\'on\'); }catch(_e){} }
 
     companyInput.addEventListener('input', () => {
       clearTimeout(searchTimer);
@@ -418,17 +429,15 @@
     });
 
     async function runSearch(q){
-      companySpin.classList.add('on');
-      if(!WEBAPP_URL){ showErr('GS_WEBAPP_URL пустой (config.js).'); return; }
+      const mySeq = ++searchSeq;
+      setSearchLoading(true);
+      if(!WEBAPP_URL){ setSearchLoading(false); showErr('GS_WEBAPP_URL пустой (config.js).'); return; }
       try{
         const url = WEBAPP_URL + '?action=search&q=' + encodeURIComponent(q) + '&limit=25';
         const data = await jsonp(url);
+        if(mySeq !== searchSeq) return; // устаревший ответ
         if(!data || !data.ok){ showErr('Поиск: ошибка ответа Apps Script (action=search).'); return; }
-        let items = Array.isArray(data.items) ? data.items : [];
-      if(!items.length && data && (data.latest||data.item)){
-        const l = data.latest || data.item;
-        if(l) items = [{...l, timestamp: l.timestamp || new Date().toISOString()}];
-      }
+        const items = Array.isArray(data.items) ? data.items : [];
         if(!items.length && !abmItems.length){ suggestBox.style.display='none'; suggestBox.innerHTML=''; return; }
 
         const map = new Map();
@@ -468,7 +477,6 @@
       finally{
         if(__glTimer){ clearTimeout(__glTimer); __glTimer=null; }
         hideGlobalLoader();
-        if(companySpin) companySpin.classList.remove('on');
       }
     }
 
@@ -778,8 +786,7 @@
     }
 
     function num(v){
-      const s = String(v ?? '').replace(',', '.').replace(/%/g,'').trim();
-          const n = Number(s);
+      const n = Number(String(v).replace(',', '.'));
       return Number.isFinite(n) ? n : NaN;
     }
 
@@ -970,6 +977,10 @@
     
     async function renderConclusions(latest){
       await loadSalesRules();
+      
+      // показать лоудер, если запрос медленный (без мерцания)
+      if(__glTimer) { clearTimeout(__glTimer); __glTimer = null; }
+      __glTimer = setTimeout(()=>showGlobalLoader("Загружаю данные…","Подтягиваем историю компании и последний слепок."), 250);
 await loadAbmNeeds();
 
       const tldrEl = document.getElementById('argsTLDR');
@@ -1269,65 +1280,44 @@ async function loadSummary(company){
       if(!WEBAPP_URL){ showErr('GS_WEBAPP_URL пустой (config.js).'); return; }
       updateLinks(company);
 
-      // предотвратить параллельные запросы (двойные клики / автозагрузка)
-      window.__ITMEN_LOAD_TOKEN = (window.__ITMEN_LOAD_TOKEN||0) + 1;
-      const token = window.__ITMEN_LOAD_TOKEN;
-
-      // быстрый UX: показываем маленький лоудер в поиске + подпись у графика
-      if(companySpin) companySpin.classList.add('on');
-      document.getElementById('histMeta').textContent = 'загрузка…';
-
       await loadSalesRules();
 
-      // 1) Сначала пробуем подтянуть "последний слепок" — чтобы KPI заполнились мгновенно
-      let latest = null;
-      try{
-        const urlLatest = WEBAPP_URL + '?action=latest&company=' + encodeURIComponent(company);
-        const dLatest = await jsonp(urlLatest, 12000);
-        if(dLatest && dLatest.ok){
-          latest = dLatest.item || dLatest.latest || null;
-        }
-      }catch(_e){ /* ignore */ }
-
-      if(token !== window.__ITMEN_LOAD_TOKEN) return;
-
-      // 2) История (график) — следом. Если истории нет, хотя бы рисуем 1 точку из latest
+      
+      // показать лоудер, если запрос медленный (без мерцания)
+      if(__glTimer) { clearTimeout(__glTimer); __glTimer = null; }
+      __glTimer = setTimeout(()=>showGlobalLoader("Загружаю данные…","Подтягиваем историю компании и последний слепок."), 250);
+// Local cache by company
       const cacheKey = 'itmen_summary_'+company;
       const cached = localStorage.getItem(cacheKey);
       if(cached){
-        try{
-          const c = JSON.parse(cached);
-          // если кэш есть — сразу рисуем график, потом обновим из сети
-          if(latest && !c.latest) c.latest = latest;
-          renderSummary(c, company, true);
-        }catch(_e){}
-      }else if(latest){
-        renderSummary({ ok:true, items:[{...latest, timestamp: latest.timestamp || new Date().toISOString()}], latest }, company, true);
+        try{ renderSummary(JSON.parse(cached), company, true); }catch(_e){}
       }
 
       try{
+        document.getElementById('histMeta').textContent = 'загрузка…';
         const url = WEBAPP_URL + '?action=history&company=' + encodeURIComponent(company) + '&limit=400';
         const data = await jsonp(url, 20000);
-        if(token !== window.__ITMEN_LOAD_TOKEN) return;
-
-        if(!data || !data.ok){
-          // если history недоступна — оставим кэш/последний слепок
-          return;
-        }
-
-        // если Apps Script не прислал latest — подмешаем тот, что уже есть
-        if(latest && !data.latest) data.latest = latest;
-
+        if(!data || !data.ok){ showErr('Не удалось получить историю компании (action=history). Проверь Apps Script.'); return; }
         localStorage.setItem(cacheKey, JSON.stringify(data));
         renderSummary(data, company, false);
-      }catch(_e){
-        // молча — KPI уже могли заполниться из latest/кэша
-      }finally{
-        if(companySpin) companySpin.classList.remove('on');
+      }catch(e){
+        showErr('Ошибка загрузки истории. Проверь доступность Web App и права.');
+      }
+      finally{
+        if(__glTimer){ clearTimeout(__glTimer); __glTimer=null; }
+        hideGlobalLoader();
       }
     }
 
-function renderSummary(data, company, fromCache){
+    function parseNumeric(v){
+      const s = String(v ?? '').trim();
+      if(!s || s==='—' || s==='-') return null;
+      const cleaned = s.replace(/%/g,'').replace(/\s+/g,'').replace(/,/g,'.');
+      const n = Number(cleaned);
+      return Number.isFinite(n) ? n : null;
+    }
+
+    function renderSummary(data, company, fromCache){
       const items = Array.isArray(data.items) ? data.items : [];
       document.getElementById('histMeta').textContent = (items.length? (items.length+' сохранений') : 'нет данных') + (fromCache?' • кэш':'');
 
@@ -1342,6 +1332,15 @@ function renderSummary(data, company, fromCache){
         return a._idx - b._idx;
       });
 
+      // fallback: если история пустая — рисуем 1 точку по последнему слепку
+      if(!normItems.length){
+        const lastFallback = (data && data.latest) ? data.latest : null;
+        if(lastFallback){
+          const d = parseTs(lastFallback.timestamp) || new Date();
+          normItems.push({ _idx: 0, _d: d, ...lastFallback });
+        }
+      }
+
       function getTs(it, idx){
         const d = it?._d;
         if(d) return d;
@@ -1352,9 +1351,7 @@ function renderSummary(data, company, fromCache){
       function getVal(it, id){
         const pick = (k)=>{
           const v = it?.[k];
-          const s = String(v ?? '').replace(',', '.').replace(/%/g,'').trim();
-          const n = Number(s);
-          return Number.isFinite(n) ? n : null;
+          return parseNumeric(v);
         };
         // support both full keys and short aliases from Apps Script
         if(id==='psi2Score') return pick('psi2Score') ?? pick('psi');
