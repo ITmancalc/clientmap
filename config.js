@@ -9,7 +9,3 @@ window.GS_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbw-SuVj04rosbXNG
 // Backward-compatible aliases used by older pages/builds
 window.GOOGLE_SHEETS_WEBAPP_URL = window.GS_WEBAPP_URL;
 window.WEBAPP_URL = window.GS_WEBAPP_URL;
-
-window.ITMEN_CONFIG = window.ITMEN_CONFIG || {};
-window.ITMEN_CONFIG.BUILD="v87";
-window.ITMEN_CONFIG.ASSET_QS="?v="+window.ITMEN_CONFIG.BUILD;
