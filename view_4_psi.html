@@ -4790,6 +4790,58 @@ async function gsSearch(q){
     // done
     window.__ITMEN_IS_LOADING = false;
 
+    // After all form fields are populated from Sheets, recompute derived KPI blocks on this page
+    // WITHOUT triggering any auto-save.
+    try{ safeRecalc(); }catch(e){ console.warn("safeRecalc after applyPayload failed", e); }
+
+    // Also apply precomputed derived fields directly from payload (if present) to avoid blanks.
+    try{
+      const setTxt=(id, val, suffix)=>{
+        const el=document.getElementById(id);
+        if(!el) return;
+        const v = (val===undefined || val===null || String(val).trim()==="") ? null : String(val).trim();
+        if(v===null){ return; }
+        el.textContent = suffix ? (v + suffix) : v;
+      };
+      const setBar=(barId, pctId, val)=>{
+        const pct = (val===undefined || val===null || String(val).trim()==="") ? null : String(val).trim();
+        if(pct===null) return;
+        const n = Number(String(pct).replace(",", ".").replace(/[^0-9.\-]/g,""));
+        if(!isFinite(n)) return;
+        const cl = Math.max(0, Math.min(100, n));
+        const bar=document.getElementById(barId);
+        if(bar) bar.style.width = cl + "%";
+        const lbl=document.getElementById(pctId);
+        if(lbl) lbl.textContent = cl + "%";
+      };
+      // KPI
+      if(payload.psi_score!=null) setTxt("psi2Score", payload.psi_score, "%");
+      if(payload.prob_index!=null) setTxt("probIndex", payload.prob_index, "%");
+      if(payload.tech_index!=null) setTxt("techIndex", payload.tech_index, "%");
+      if(payload.proc_index!=null) setTxt("procIndex", payload.proc_index, "%");
+      // Risk & readiness
+      if(payload.pilot_readiness_pct!=null) setTxt("pilotReady", payload.pilot_readiness_pct, "%");
+      if(payload.main_problem_zone!=null) setTxt("mainProblem", payload.main_problem_zone, "");
+      if(payload.rec_modules!=null) setTxt("kModules", payload.rec_modules, "");
+      if(payload.demo_focus!=null) setTxt("demoFocusHint", payload.demo_focus, "");
+      setBar("riskGreyBar","riskGreyPct", payload.risk_grey_pct);
+      setBar("riskLicBar","riskLicPct", payload.risk_lic_pct);
+      setBar("riskOpsBar","riskOpsPct", payload.risk_ops_pct);
+      setBar("riskGovBar","riskGovPct", payload.risk_gov_pct);
+      // COI breakdown
+      const numTxt=(id,val)=>{
+        const el=document.getElementById(id); if(!el) return;
+        const n=Number(String(val).replace(/[^0-9.\-]/g,"").replace(",", "."));
+        if(!isFinite(n)) return;
+        el.textContent = Math.round(n).toString();
+      };
+      if(payload.coi_license_loss!=null) numTxt("coiLic", payload.coi_license_loss);
+      if(payload.coi_downtime_loss!=null) numTxt("coiDown", payload.coi_downtime_loss);
+      if(payload.coi_manual_loss!=null) numTxt("coiManual", payload.coi_manual_loss);
+      if(payload.coi_total_loss!=null) numTxt("coiTotal", payload.coi_total_loss);
+    }catch(e){ console.warn("applyPayload derived fill failed", e); }
+
+
   }
 
   function init(){
