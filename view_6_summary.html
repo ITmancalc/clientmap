@@ -190,7 +190,7 @@
           <div class="sectionTitle">Быстрый вход</div>
           <div class="searchWrap">
             <div class="icon">🔎</div>
-            <input id="companyInput" class="search" placeholder="Введите компанию (начните печатать…)" autocomplete="off"/>
+            <input id="companyInput" class="search" placeholder="Введите компанию (начните печатать…)" autocomplete="off"/><div class="dockSpin" id="companySpin" aria-hidden="true"></div>
           </div>
           <div style="display:flex; gap:10px; margin-top:10px; flex-wrap:wrap">
             <button id="btnLoad" class="btn" style="flex:1">Загрузить</button>
@@ -255,7 +255,7 @@
             <a class="tool active" href="view_6_summary.html">
               <div class="tIcon">✅</div>
               <div>
-                <div class="tName">C‑level вывод</div>
+                <div class="tName">Выводы</div>
                 <div class="tDesc">итоги по компании</div>
               </div>
             </a>
@@ -396,6 +396,7 @@
     // Search
     const companyInput = document.getElementById('companyInput');
     const suggestBox = document.getElementById('suggestBox');
+      const companySpin = document.getElementById('companySpin');
     let selectedCompany = '';
     let searchTimer = null;
 
@@ -452,6 +453,7 @@
       finally{
         if(__glTimer){ clearTimeout(__glTimer); __glTimer=null; }
         hideGlobalLoader();
+        if(companySpin) companySpin.style.display='none';
       }
     }
 
@@ -952,10 +954,6 @@
     
     async function renderConclusions(latest){
       await loadSalesRules();
-      
-      // показать лоудер, если запрос медленный (без мерцания)
-      if(__glTimer) { clearTimeout(__glTimer); __glTimer = null; }
-      __glTimer = setTimeout(()=>showGlobalLoader("Загружаю данные…","Подтягиваем историю компании и последний слепок."), 250);
 await loadAbmNeeds();
 
       const tldrEl = document.getElementById('argsTLDR');
