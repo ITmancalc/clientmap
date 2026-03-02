@@ -249,6 +249,8 @@
 
   function collectPayloadFromIframe_(doc){
     const out = {};
+
+    // 1) Standard form fields
     const els = doc.querySelectorAll('input,select,textarea');
     els.forEach(el => {
       const key = el.id || el.name;
@@ -258,6 +260,70 @@
       else if(type === 'radio') { if(el.checked) out[key] = el.value; }
       else out[key] = el.value;
     });
+
+    // 2) Modules (chips are NOT inputs; state is stored in dataset.active)
+    // Expected DOM: #modules .chip with chip.dataset.active = "1"|"0" and title in <h4>
+    try{
+      const chips = Array.from(doc.querySelectorAll('#modules .chip'));
+      if(chips.length){
+        const modules = chips.map(ch => ({
+          name: (ch.querySelector('h4') ? ch.querySelector('h4').textContent : ch.textContent || '').trim(),
+          active: String((ch.dataset && ch.dataset.active) ? ch.dataset.active : '').trim() === '1' ? 1 : 0
+        })).filter(x=>x.name);
+
+        out.modules_selected = modules.filter(m=>m.active).map(m=>m.name).join('; ');
+        out.modules_json = JSON.stringify(modules);
+
+        // Individual flags (for filtering in Sheets)
+        modules.forEach(m=>{
+          const slug = m.name
+            .toLowerCase()
+            .replace(/[^a-z0-9а-яё]+/gi,'_')
+            .replace(/^_+|_+$/g,'');
+          out['module_' + slug] = m.active;
+        });
+      }
+    }catch(_e){}
+
+    // 3) Financial / computed KPIs (text blocks, not inputs)
+    function txt(id){
+      const el = doc.getElementById(id);
+      return el ? String(el.textContent || '').trim() : '';
+    }
+    [
+      'kpiCost','supportCost','kpiPartnerProfit','kpiROI',
+      'sumNoVAT','sumWithVAT','sumNoVATPartner','sumWithVATPartner',
+      'expectedPayDate','payTermText'
+    ].forEach(id=>{
+      const v = txt(id);
+      if(v) out[id] = v;
+    });
+
+    // 4) Spec / detailed items table (rows)
+    try{
+      const tbody = doc.getElementById('itemsTbody');
+      if(tbody){
+        const rows = Array.from(tbody.querySelectorAll('tr')).map(tr=>{
+          const tds = Array.from(tr.querySelectorAll('td')).map(td=>String(td.textContent||'').trim());
+          return {
+            nomen: tds[0]||'',
+            sku: tds[1]||'',
+            name: tds[2]||'',
+            qty: tds[3]||'',
+            unit_price: tds[4]||'',
+            discount: tds[5]||'',
+            sum_no_vat: tds[6]||'',
+            sum_with_vat: tds[7]||'',
+            partner_unit_price: tds[8]||''
+          };
+        });
+        if(rows.length){
+          out.spec_rows_json = JSON.stringify(rows);
+          out.spec_rows_count = rows.length;
+        }
+      }
+    }catch(_e){}
+
     return out;
   }
 
