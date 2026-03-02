@@ -4619,6 +4619,31 @@ async function gsSearch(q){
       if(p.recommendedConfig==null && p["pilot.recommendedConfig"]!=null) p.recommendedConfig = p["pilot.recommendedConfig"];
       if(p.pilotTasks_removed==null && p["pilot.tasks"]!=null) p.pilotTasks_removed = p["pilot.tasks"];
       if(p.pilotKpi_removed==null && p["pilot.kpi"]!=null) p.pilotKpi_removed = p["pilot.kpi"];
+
+      // ===== KPI / index aliases (some pages/save-flows store camelCase keys)
+      // Ensure we always have the canonical snake_case keys that Apps Script / Sheets headers expect.
+      if(p.psi_score==null && p.psi2Score!=null) p.psi_score = p.psi2Score;
+      if(p.prob_index==null && p.probIndex!=null) p.prob_index = p.probIndex;
+      if(p.risk_index==null && p.riskIndex!=null) p.risk_index = p.riskIndex;
+      if(p.tech_index==null && p.techIndex!=null) p.tech_index = p.techIndex;
+      if(p.proc_index==null && p.procIndex!=null) p.proc_index = p.procIndex;
+      if(p.ready_index==null && p.readyIndex!=null) p.ready_index = p.readyIndex;
+      if(p.feas_index==null && p.feasIndex!=null) p.feas_index = p.feasIndex;
+
+      if(p.pilot_readiness_pct==null && p.pilotReady!=null) p.pilot_readiness_pct = p.pilotReady;
+      if(p.main_problem_zone==null && p.mainProblem!=null) p.main_problem_zone = p.mainProblem;
+      if(p.rec_modules==null && p.kModules!=null) p.rec_modules = p.kModules;
+      if(p.demo_focus==null && p.demoFocusHint!=null) p.demo_focus = p.demoFocusHint;
+
+      if(p.risk_grey_pct==null && p.riskGreyPct!=null) p.risk_grey_pct = p.riskGreyPct;
+      if(p.risk_lic_pct==null && p.riskLicPct!=null) p.risk_lic_pct = p.riskLicPct;
+      if(p.risk_ops_pct==null && p.riskOpsPct!=null) p.risk_ops_pct = p.riskOpsPct;
+      if(p.risk_gov_pct==null && p.riskGovPct!=null) p.risk_gov_pct = p.riskGovPct;
+
+      if(p.coi_license_loss==null && p.coiLic!=null) p.coi_license_loss = p.coiLic;
+      if(p.coi_downtime_loss==null && p.coiDown!=null) p.coi_downtime_loss = p.coiDown;
+      if(p.coi_manual_loss==null && p.coiManual!=null) p.coi_manual_loss = p.coiManual;
+      if(p.coi_total_loss==null && p.coiTotal!=null) p.coi_total_loss = p.coiTotal;
     }catch(e){}
 
 
