@@ -1051,13 +1051,41 @@ function itmenBuildCalcPayload_(){
   return payload;
 }
 async function itmenSaveCalc_(payload){
+  // Use JSONP GET to bypass CORS restrictions of Apps Script WebApp.
   try{
-    const url = (window.GS_WEBAPP_URL || window.GOOGLE_SHEETS_WEBAPP_URL || window.WEBAPP_URL || '').trim();
-    if(!url){ console.warn('GS_WEBAPP_URL is not set'); return; }
+    const base = (window.GS_WEBAPP_URL || window.GOOGLE_SHEETS_WEBAPP_URL || window.WEBAPP_URL || '').trim();
+    if(!base){ console.warn('GS_WEBAPP_URL is not set'); return; }
     if(!payload || !payload.company){ console.warn('Calculator save skipped: company empty'); return; }
-    const body = 'action=save_calc&payload=' + encodeURIComponent(JSON.stringify(payload));
-    const res = await fetch(url, {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body});
-    await res.text();
+
+    const cbName = 'itmenCalcCB_' + Math.random().toString(36).slice(2);
+    const cleanup = ()=>{
+      try{ delete window[cbName]; }catch(e){}
+      const s = document.getElementById(cbName);
+      if(s && s.parentNode) s.parentNode.removeChild(s);
+    };
+
+    window[cbName] = function(resp){
+      // resp can be {ok:true...} or error
+      cleanup();
+    };
+
+    const qs =
+      'action=save_calc'
+      + '&payload=' + encodeURIComponent(JSON.stringify(payload))
+      + '&callback=' + encodeURIComponent(cbName)
+      + '&_ts=' + Date.now();
+
+    const sep = base.indexOf('?') >= 0 ? '&' : '?';
+    const url = base + sep + qs;
+
+    const script = document.createElement('script');
+    script.id = cbName;
+    script.src = url;
+    script.onerror = function(){
+      cleanup();
+      console.warn('Calculator save failed (jsonp load error)');
+    };
+    document.head.appendChild(script);
   }catch(e){
     console.warn('Calculator save failed', e);
   }
