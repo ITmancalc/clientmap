@@ -209,21 +209,42 @@
 
   document.getElementById('dockLoadBtn').addEventListener('click', ()=> setCompany(document.getElementById('dockCompany').value, true));
 
-  /* ===== Save to Apps Script (JSONP) ===== */
-  function jsonp_(url){
-    return new Promise((resolve, reject) => {
-      const cb = 'cb_' + Math.random().toString(36).slice(2);
-      const s = document.createElement('script');
-      const sep = url.includes('?') ? '&' : '?';
-      window[cb] = (data) => { cleanup(); resolve(data); };
-      function cleanup(){
-        try{ delete window[cb]; }catch(e){ window[cb] = undefined; }
-        s.remove();
+  /* ===== Save to Apps Script (Fire-and-forget POST) =====
+     Почему так:
+     - JSONP в ряде сценариев (redirect на googleusercontent) может разваливаться и давать "Файл не обнаружен".
+     - CORS мешает читать ответ, но нам ответ не нужен: важно лишь доставить payload в Apps Script.
+     - sendBeacon идеально подходит под клик/печать PDF.
+  */
+
+  function postToAppsScript_(payload){
+    const url = (window.GS_WEBAPP_URL || window.GOOGLE_SHEETS_WEBAPP_URL || window.WEBAPP_URL || '').trim();
+    if(!url) return {ok:false, reason:'GS_WEBAPP_URL not set'};
+
+    const endpoint = url + '?action=save_calc';
+    const body = 'payload=' + encodeURIComponent(JSON.stringify(payload));
+
+    // 1) Prefer sendBeacon
+    try{
+      if(navigator && navigator.sendBeacon){
+        const blob = new Blob([body], {type:'application/x-www-form-urlencoded;charset=UTF-8'});
+        const sent = navigator.sendBeacon(endpoint, blob);
+        if(sent) return {ok:true, method:'beacon'};
       }
-      s.onerror = () => { cleanup(); reject(new Error('JSONP load error')); };
-      s.src = url + sep + 'callback=' + cb;
-      document.head.appendChild(s);
-    });
+    }catch(e){ /* ignore */ }
+
+    // 2) Fallback: fetch no-cors (response will be opaque; that's fine)
+    try{
+      fetch(endpoint, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: {'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8'},
+        body,
+        keepalive: true
+      }).catch(()=>{});
+      return {ok:true, method:'fetch-no-cors'};
+    }catch(e){
+      return {ok:false, reason:String(e && e.message ? e.message : e)};
+    }
   }
 
   function collectPayloadFromIframe_(doc){
@@ -240,6 +261,32 @@
     return out;
   }
 
+  // Try to extract company name from калькулятора (он может не использовать key 'company')
+  function detectCompany_(payload){
+    if(!payload) return '';
+    const priority = [
+      'company','Company','Компания',
+      'companyName','CompanyName','company_name',
+      'client','Client','clientName','ClientName','customer','Customer','customerName','CustomerName',
+      'client_name','customer_name',
+      'Наименование клиента','Название клиента','Клиент'
+    ];
+    for(const k of priority){
+      const v = payload[k];
+      if(v !== undefined && v !== null && String(v).trim()) return String(v).trim();
+    }
+    // Heuristic: any key containing 'client'/'company' with non-empty value
+    for(const k in payload){
+      if(!payload.hasOwnProperty(k)) continue;
+      const lk = String(k).toLowerCase();
+      if(lk.includes('client') || lk.includes('company') || lk.includes('customer') || lk.includes('клиент') || lk.includes('компан')){
+        const v = payload[k];
+        if(v !== undefined && v !== null && String(v).trim()) return String(v).trim();
+      }
+    }
+    return '';
+  }
+
   async function saveCalcFromParent_(){
     const statusEl = document.getElementById('calcSaveStatus');
     const url = (window.GS_WEBAPP_URL || window.GOOGLE_SHEETS_WEBAPP_URL || window.WEBAPP_URL || '').trim();
@@ -253,19 +300,29 @@
     let payload = {};
     try{ payload = collectPayloadFromIframe_(doc); }catch(e){ console.warn('collect payload error', e); payload = {}; }
 
-    payload.company = String(__CURRENT_COMPANY__ || payload.company || payload.Компания || '').trim();
+    // Company can be entered прямо в калькуляторе. QuickDock selection is optional.
+    const companyFromCalc = detectCompany_(payload);
+    payload.company = String(companyFromCalc || __CURRENT_COMPANY__ || '').trim();
     payload.source = 'calculator';
     payload.timestamp = new Date().toISOString();
     payload.run_id = payload.run_id || payload.runId || payload.runID || (crypto && crypto.randomUUID ? crypto.randomUUID() : String(Date.now()));
 
-    if(!payload.company){ console.warn('company missing (select in QuickDock)'); if(statusEl) statusEl.innerHTML = 'Save: <b>company missing</b> (выбери компанию слева)'; return; }
+    if(!payload.company){
+      console.warn('company missing (enter it in calculator or select in QuickDock)');
+      if(statusEl) statusEl.innerHTML = 'Save: <b>company missing</b> (введи в калькуляторе или выбери слева)';
+      return;
+    }
 
-    const reqUrl = url + '?action=save_calc&payload=' + encodeURIComponent(JSON.stringify(payload));
     try{
       if(statusEl) statusEl.innerHTML = 'Save: <b>sending…</b> ' + esc(payload.company);
-      const res = await jsonp_(reqUrl);
-      console.log('save_calc result', res);
-      if(statusEl) statusEl.innerHTML = 'Save: <b>OK</b> row=' + esc(res && (res.row||res.Row||res.r||'?')) + ' • ' + esc(payload.company);
+      const r = postToAppsScript_(payload);
+      if(r && r.ok){
+        console.log('save_calc sent via', r.method);
+        if(statusEl) statusEl.innerHTML = 'Save: <b>SENT</b> (' + esc(r.method) + ') • ' + esc(payload.company);
+      }else{
+        console.warn('save_calc not sent', r);
+        if(statusEl) statusEl.innerHTML = 'Save: <b>FAILED</b> ' + esc(r && r.reason ? r.reason : '');
+      }
     }catch(e){
       console.warn('save_calc failed', e);
       if(statusEl) statusEl.innerHTML = 'Save: <b>FAILED</b> (см. Console)';
