@@ -438,9 +438,7 @@ function initOtherDiscountGate(){
         setPanelVisible(false);
         clearInner();
         try{ recalc(); }catch(e){}
-      // save to ITMen ClientMap DB (Calculator_Log)
-      try{ await itmenSaveCalc_(itmenBuildCalcPayload_()); }catch(_e){}
-return;
+        return;
       }
       setPanelVisible(true);
     } else {
