@@ -20,14 +20,13 @@
       --muted:#6b7280;
       --border: rgba(15,23,42,.12);
       --shadow: 0 10px 30px rgba(0,0,0,.08);
-      --radius:16px;
       font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
     }
     *{box-sizing:border-box}
     body{margin:0;background:linear-gradient(180deg,#f7f7f8 0%,#ffffff 60%);color:var(--text)}
     .container{max-width:1480px;margin:22px auto;padding:0 14px}
 
-    /* ===== QuickDock ===== */
+    /* ===== QuickDock (same style as other pages) ===== */
     .quickDock{position:fixed;left:16px;top:16px;width:320px;z-index:50}
     .quickDock .card{box-shadow:0 18px 50px rgba(15,23,42,.12)}
     .card{background:var(--surface);border:1px solid #e5e7eb;border-radius:16px;padding:16px;box-shadow:var(--shadow)}
@@ -82,14 +81,12 @@
       <div class="dockTitle">Быстрый вход</div>
       <button type="button" class="dockToggle" id="dockToggle" aria-label="Свернуть/развернуть панель" title="Свернуть панель">◀</button>
     </div>
-
-    <div class="dockSearchWrap">
+    <div class="dockSearchWrap dockTop">
       <div class="dockIcon">🔎</div>
       <input autocomplete="off" class="dockSearch" id="dockCompany" placeholder="Введите компанию"/>
-      <button class="dockLoadBtn" id="dockLoadBtn" type="button">Открыть</button>
+      <button class="dockLoadBtn" id="dockLoadBtn" title="Загрузить" type="button">Загрузить</button>
     </div>
     <div class="dockSuggest" id="dockSuggest"></div>
-
     <div style="height:12px"></div>
     <div class="dockTitle" style="margin-bottom:0">Инструменты</div>
     <div class="toolGrid">
@@ -110,19 +107,21 @@
   <header>
     <div>
       <h1>Калькулятор / спецификатор</h1>
-      <div class="sub">Открывается в карте клиента. При нажатии «Скачать PDF» калькулятор сохраняет запись в БД карты клиента (Calculator_Log) через Apps Script.</div>
-      <div class="hint">Важно: выбери компанию в «Быстрый вход» — она подставится в поле «Клиент» внутри калькулятора и уйдёт в БД.</div>
+      <div class="sub">Открывается внутри карты клиента как iframe. При нажатии «Скачать PDF» (в калькуляторе) карта клиента перехватывает клик, сохраняет запись в БД (лист Calculator_Log) через Apps Script, и затем PDF формируется как обычно.</div>
+      <div class="hint">Важно: выбери компанию в «Быстрый вход» — она уйдёт в БД вместе со всеми полями калькулятора.</div>
     </div>
   </header>
 
   <div class="frameWrap">
-    <iframe id="calcFrame" src="calculator/Index.html"></iframe>
+    <!-- IMPORTANT: use the original calculator URL (no code inside calculator required) -->
+    <iframe id="calcFrame" src="https://itmancalc.github.io/calculator/Index.html"></iframe>
   </div>
 </div>
 
 <script>
   const LS_COMPANY = 'itmen_last_company_v1';
   const LS_DOCK = 'itmen_quickdock_collapsed_v1';
+  let __CURRENT_COMPANY__ = '';
 
   function esc(s){return String(s||'').replace(/[&<>"']/g, m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[m]));}
   function showSuggest(items){
@@ -152,15 +151,15 @@
   function setCompany(name, fromSuggest){
     const company = String(name||'').trim();
     if(!company) return;
+    __CURRENT_COMPANY__ = company;
     document.getElementById('dockCompany').value = company;
     try{ localStorage.setItem(LS_COMPANY, company); }catch(e){}
 
-    // reload iframe with company query (calculator will auto-fill clientName)
+    // reload calculator with company query (the calculator itself may ignore it; we still keep it for traceability)
     const frame = document.getElementById('calcFrame');
-    const base = 'calculator/Index.html';
+    const base = 'https://itmancalc.github.io/calculator/Index.html';
     frame.src = base + '?company=' + encodeURIComponent(company) + '&v=' + Date.now();
 
-    // hide suggest
     if(fromSuggest){ showSuggest([]); }
   }
 
@@ -206,7 +205,99 @@
 
   document.getElementById('dockLoadBtn').addEventListener('click', ()=> setCompany(document.getElementById('dockCompany').value, true));
 
+  /* ===== Save to Apps Script (JSONP) ===== */
+  function jsonp_(url){
+    return new Promise((resolve, reject) => {
+      const cb = 'cb_' + Math.random().toString(36).slice(2);
+      const s = document.createElement('script');
+      const sep = url.includes('?') ? '&' : '?';
+      window[cb] = (data) => { cleanup(); resolve(data); };
+      function cleanup(){
+        try{ delete window[cb]; }catch(e){ window[cb] = undefined; }
+        s.remove();
+      }
+      s.onerror = () => { cleanup(); reject(new Error('JSONP load error')); };
+      s.src = url + sep + 'callback=' + cb;
+      document.head.appendChild(s);
+    });
+  }
+
+  function collectPayloadFromIframe_(doc){
+    const out = {};
+    const els = doc.querySelectorAll('input,select,textarea');
+    els.forEach(el => {
+      const key = el.id || el.name;
+      if(!key) return;
+      const type = (el.type || '').toLowerCase();
+      if(type === 'checkbox') out[key] = el.checked ? 1 : 0;
+      else if(type === 'radio') { if(el.checked) out[key] = el.value; }
+      else out[key] = el.value;
+    });
+    return out;
+  }
+
+  async function saveCalcFromParent_(){
+    const url = (window.GS_WEBAPP_URL || window.GOOGLE_SHEETS_WEBAPP_URL || window.WEBAPP_URL || '').trim();
+    if(!url){ console.warn('GS_WEBAPP_URL not set'); return; }
+
+    const frame = document.getElementById('calcFrame');
+    const w = frame.contentWindow;
+    const doc = w && w.document;
+    if(!doc){ console.warn('iframe doc not доступен'); return; }
+
+    let payload = {};
+    try{ payload = collectPayloadFromIframe_(doc); }catch(e){ console.warn('collect payload error', e); payload = {}; }
+
+    payload.company = String(__CURRENT_COMPANY__ || payload.company || payload.Компания || '').trim();
+    payload.source = 'calculator';
+    payload.timestamp = new Date().toISOString();
+    payload.run_id = payload.run_id || payload.runId || payload.runID || (crypto && crypto.randomUUID ? crypto.randomUUID() : String(Date.now()));
+
+    if(!payload.company){ console.warn('company missing (select in QuickDock)'); return; }
+
+    const reqUrl = url + '?action=save_calc&payload=' + encodeURIComponent(JSON.stringify(payload));
+    try{
+      const res = await jsonp_(reqUrl);
+      console.log('save_calc result', res);
+    }catch(e){
+      console.warn('save_calc failed', e);
+    }
+  }
+
+  function wirePdfIntercept_(){
+    const frame = document.getElementById('calcFrame');
+    let armed = false;
+
+    frame.addEventListener('load', () => {
+      armed = false;
+      try{
+        const doc = frame.contentWindow && frame.contentWindow.document;
+        if(!doc) return;
+        const btn = doc.getElementById('btnPDF');
+        if(!btn){ console.warn('btnPDF not found in calculator'); return; }
+
+        if(armed) return;
+        armed = true;
+
+        // Capture = run before калькуляторского обработчика
+        btn.addEventListener('click', () => {
+          // fire and forget (do not блокировать PDF)
+          saveCalcFromParent_();
+        }, true);
+
+        // Optional: if calculator has clientName field, try fill from company
+        if(__CURRENT_COMPANY__){
+          const clientName = doc.getElementById('clientName') || doc.querySelector('[name="clientName"]');
+          if(clientName && !clientName.value) clientName.value = __CURRENT_COMPANY__;
+        }
+      }catch(e){
+        console.warn('wirePdfIntercept error', e);
+      }
+    });
+  }
+
   // init
+  wirePdfIntercept_();
   const last = loadLastCompany();
   if(last) setCompany(last, true);
 </script>
