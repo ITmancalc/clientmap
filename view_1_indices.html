@@ -4864,15 +4864,11 @@ if(p.coiManual==null && p.coi_manual_loss!=null) p.coiManual = p.coi_manual_loss
         const el = document.getElementById(id);
         if(el) el.textContent = text;
       };
-const setText = (id, text)=>{
-        const el = document.getElementById(id);
-        if(el) el.textContent = text;
-      };
 
       const setBar = (id, pct)=>{
         const el = document.getElementById(id);
-        const n = Number(pct);
         if(!el) return;
+        const n = Number(String(pct).replace(',', '.').replace(/[^0-9.\-]/g,''));
         if(!isFinite(n)) { el.style.width = "0%"; return; }
         const clamped = Math.max(0, Math.min(100, n));
         el.style.width = clamped + "%";
@@ -4884,16 +4880,11 @@ const setText = (id, text)=>{
       if(payload.rec_modules!=null && payload.rec_modules!=="") setText("kModules", String(payload.rec_modules));
       if(payload.demo_focus!=null && payload.demo_focus!=="") setText("demoFocusHint", String(payload.demo_focus));
 
-      if(payload.risk_grey_pct!=null && payload.risk_grey_p
-      // also render heatmap bars
-      if(payload.risk_grey_pct!=null && payload.risk_grey_pct!=="") setBar("riskGreyBar", payload.risk_grey_pct);
-      if(payload.risk_lic_pct!=null && payload.risk_lic_pct!=="")  setBar("riskLicBar",  payload.risk_lic_pct);
-      if(payload.risk_ops_pct!=null && payload.risk_ops_pct!=="")  setBar("riskOpsBar",  payload.risk_ops_pct);
-      if(payload.risk_gov_pct!=null && payload.risk_gov_pct!=="")  setBar("riskGovBar",  payload.risk_gov_pct);
-ct!=="") setText("riskGreyPct", fmtPct(payload.risk_grey_pct));
-      if(payload.risk_lic_pct!=null && payload.risk_lic_pct!=="")  setText("riskLicPct",  fmtPct(payload.risk_lic_pct));
-      if(payload.risk_ops_pct!=null && payload.risk_ops_pct!=="")  setText("riskOpsPct",  fmtPct(payload.risk_ops_pct));
-      if(payload.risk_gov_pct!=null && payload.risk_gov_pct!=="")  setText("riskGovPct",  fmtPct(payload.risk_gov_pct));
+      // heatmap bars + labels
+      if(payload.risk_grey_pct!=null && payload.risk_grey_pct!=="") { setBar("riskGreyBar", payload.risk_grey_pct); setText("riskGreyPct", fmtPct(payload.risk_grey_pct)); }
+      if(payload.risk_lic_pct!=null && payload.risk_lic_pct!=="")  { setBar("riskLicBar",  payload.risk_lic_pct);  setText("riskLicPct",  fmtPct(payload.risk_lic_pct)); }
+      if(payload.risk_ops_pct!=null && payload.risk_ops_pct!=="")  { setBar("riskOpsBar",  payload.risk_ops_pct);  setText("riskOpsPct",  fmtPct(payload.risk_ops_pct)); }
+      if(payload.risk_gov_pct!=null && payload.risk_gov_pct!=="")  { setBar("riskGovBar",  payload.risk_gov_pct);  setText("riskGovPct",  fmtPct(payload.risk_gov_pct)); }
 
       // COI breakdown
       if(payload.coi_license_loss!=null && payload.coi_license_loss!=="")   setText("coiLic",    fmtRub(payload.coi_license_loss));
