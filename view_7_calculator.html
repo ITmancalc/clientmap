@@ -75,6 +75,10 @@
   BUILD <b>v42</b> • calculator
 </div>
 
+<div id="calcSaveStatus" style="position:fixed;z-index:99999;bottom:56px;right:12px;background:#ffffff;color:#111827;border:1px solid rgba(15,23,42,.12);padding:8px 10px;border-radius:10px;font:12px/1.2 system-ui;box-shadow:0 10px 30px rgba(0,0,0,.10);opacity:.96;max-width:360px">
+  Save: <b>idle</b>
+</div>
+
 <div class="quickDock" id="quickDock">
   <div class="card pad">
     <div class="dockHeader">
@@ -237,13 +241,14 @@
   }
 
   async function saveCalcFromParent_(){
+    const statusEl = document.getElementById('calcSaveStatus');
     const url = (window.GS_WEBAPP_URL || window.GOOGLE_SHEETS_WEBAPP_URL || window.WEBAPP_URL || '').trim();
-    if(!url){ console.warn('GS_WEBAPP_URL not set'); return; }
+    if(!url){ console.warn('GS_WEBAPP_URL not set'); if(statusEl) statusEl.innerHTML = 'Save: <b>GS_WEBAPP_URL not set</b>'; return; }
 
     const frame = document.getElementById('calcFrame');
     const w = frame.contentWindow;
     const doc = w && w.document;
-    if(!doc){ console.warn('iframe doc not доступен'); return; }
+    if(!doc){ console.warn('iframe doc not доступен'); if(statusEl) statusEl.innerHTML = 'Save: <b>iframe doc not доступен</b>'; return; }
 
     let payload = {};
     try{ payload = collectPayloadFromIframe_(doc); }catch(e){ console.warn('collect payload error', e); payload = {}; }
@@ -253,14 +258,17 @@
     payload.timestamp = new Date().toISOString();
     payload.run_id = payload.run_id || payload.runId || payload.runID || (crypto && crypto.randomUUID ? crypto.randomUUID() : String(Date.now()));
 
-    if(!payload.company){ console.warn('company missing (select in QuickDock)'); return; }
+    if(!payload.company){ console.warn('company missing (select in QuickDock)'); if(statusEl) statusEl.innerHTML = 'Save: <b>company missing</b> (выбери компанию слева)'; return; }
 
     const reqUrl = url + '?action=save_calc&payload=' + encodeURIComponent(JSON.stringify(payload));
     try{
+      if(statusEl) statusEl.innerHTML = 'Save: <b>sending…</b> ' + esc(payload.company);
       const res = await jsonp_(reqUrl);
       console.log('save_calc result', res);
+      if(statusEl) statusEl.innerHTML = 'Save: <b>OK</b> row=' + esc(res && (res.row||res.Row||res.r||'?')) + ' • ' + esc(payload.company);
     }catch(e){
       console.warn('save_calc failed', e);
+      if(statusEl) statusEl.innerHTML = 'Save: <b>FAILED</b> (см. Console)';
     }
   }
 
@@ -268,22 +276,58 @@
     const frame = document.getElementById('calcFrame');
     let armed = false;
 
+    function findPdfButton_(doc){
+      if(!doc) return null;
+      // 1) preferred stable id
+      const byId = doc.getElementById('btnPDF');
+      if(byId) return byId;
+      // 2) try common variants
+      const byId2 = doc.getElementById('downloadPdf') || doc.getElementById('downloadPDF') || doc.getElementById('pdf') || doc.getElementById('btnPdf');
+      if(byId2) return byId2;
+      // 3) fallback: button/link text contains PDF
+      const candidates = Array.from(doc.querySelectorAll('button, a, input[type="button"], input[type="submit"]'));
+      for(const el of candidates){
+        const txt = (el.innerText || el.value || '').toString().trim().toLowerCase();
+        if(!txt) continue;
+        if((txt.includes('pdf') && (txt.includes('скач') || txt.includes('download') || txt.includes('сохран'))) || txt === 'скачать pdf' || txt === 'скачать pдf'){
+          return el;
+        }
+      }
+      return null;
+    }
+
+    function arm_(doc){
+      const btn = findPdfButton_(doc);
+      if(!btn){ console.warn('PDF button not found in calculator (id btnPDF or text "Скачать PDF")'); return false; }
+      if(btn.__itmen_hooked) return true;
+      btn.__itmen_hooked = true;
+      // Capture = run before калькуляторского обработчика
+      btn.addEventListener('click', () => {
+        console.log('[ITMEN] PDF click intercepted → save_calc');
+        // fire and forget (do not блокировать PDF)
+        saveCalcFromParent_();
+      }, true);
+      console.log('[ITMEN] PDF intercept armed on element:', btn);
+      return true;
+    }
+
     frame.addEventListener('load', () => {
       armed = false;
       try{
         const doc = frame.contentWindow && frame.contentWindow.document;
         if(!doc) return;
-        const btn = doc.getElementById('btnPDF');
-        if(!btn){ console.warn('btnPDF not found in calculator'); return; }
-
         if(armed) return;
-        armed = true;
+        // try to arm immediately
+        armed = arm_(doc);
 
-        // Capture = run before калькуляторского обработчика
-        btn.addEventListener('click', () => {
-          // fire and forget (do not блокировать PDF)
-          saveCalcFromParent_();
-        }, true);
+        // калькулятор может перерисовать DOM (кнопка появляется позже) — наблюдаем
+        const mo = new MutationObserver(() => {
+          if(!armed){
+            armed = arm_(doc);
+          }
+          if(armed) mo.disconnect();
+        });
+        mo.observe(doc.documentElement || doc.body, {subtree:true, childList:true});
 
         // Optional: if calculator has clientName field, try fill from company
         if(__CURRENT_COMPANY__){
