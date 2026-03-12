@@ -1,0 +1,1230 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' https: data:; connect-src 'self' https://script.google.com https://script.googleusercontent.com; img-src 'self' data: https:; frame-src https://script.google.com https://script.googleusercontent.com;">
+<script src="config.js"></script>
+<script src="build_info.js?v=v93"></script>
+<script src="question_bank.js"></script>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>PSI Control Center</title>
+  <style>
+    :root{
+      --bg:#f6f7fb;
+      --card:#ffffff;
+      --text:#0b1220;
+      --muted:#5b6475;
+      --line:rgba(15,23,42,.12);
+      --shadow:0 12px 30px rgba(15,23,42,.06);
+      --radius:16px;
+      --accent:#ef4444;
+      --accent2:#2563eb;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Noto Sans", "Helvetica Neue", sans-serif;
+      background:var(--bg);
+      color:var(--text);
+    }
+    a{color:inherit; text-decoration:none}
+    .wrap{
+      max-width:1280px;
+      margin:24px auto;
+      padding:0 16px 32px;
+    }
+    header{
+      display:flex; align-items:flex-start; justify-content:space-between;
+      gap:16px; margin-bottom:16px;
+    }
+    .h1{font-size:22px; font-weight:900; letter-spacing:.2px}
+    .sub{margin-top:4px; color:var(--muted); font-size:13px}
+    .period{
+      background:var(--card); border:1px solid var(--line); border-radius:999px;
+      padding:6px; display:flex; gap:6px; box-shadow:var(--shadow);
+    }
+    .pill{
+      border:1px solid transparent;
+      background:transparent;
+      padding:6px 10px; border-radius:999px;
+      cursor:pointer; font-weight:800; font-size:13px; color:var(--muted);
+    }
+    .pill.active{background:#0b1220; color:white}
+
+    .grid{
+      display:grid;
+      grid-template-columns: 340px 1fr;
+      gap:16px;
+      align-items:start;
+    }
+    @media (max-width: 980px){
+      .grid{grid-template-columns:1fr}
+    }
+    .card{
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+    }
+    .pad{padding:14px}
+    .sectionTitle{font-weight:900; font-size:14px; margin:0 0 10px}
+    .muted{color:var(--muted)}
+
+    /* Search */
+    .search{
+      width:100%;
+      border:1px solid var(--line);
+      background:#f2f4f8;
+      padding:11px 12px 11px 38px;
+      border-radius:12px;
+      outline:none;
+      font-size:14px;
+    }
+    .searchWrap{position:relative}
+    .icon{position:absolute; left:12px; top:50%; transform:translateY(-50%); opacity:.7}
+    .btn{
+      background:var(--accent); color:white; border:none;
+      padding:10px 12px; border-radius:12px;
+      font-weight:900; cursor:pointer; white-space:nowrap;
+    }
+    .btn.secondary{background:#0b1220}
+    .btn.ghost{background:#fff; color:#0b1220; border:1px solid var(--line)}
+    .btn:disabled{opacity:.55; cursor:not-allowed}
+
+    .suggest{
+      margin-top:8px;
+      border:1px solid var(--line);
+      border-radius:12px;
+      overflow:hidden;
+      display:none;
+      background:white;
+    }
+    .sItem{
+      padding:10px 12px;
+      border-top:1px solid rgba(15,23,42,.06);
+      cursor:pointer;
+      display:flex; justify-content:space-between; gap:10px; align-items:center;
+    }
+    .sItem:first-child{border-top:none}
+    .sName{font-weight:900}
+    .sMeta{font-size:12px; color:var(--muted)}
+    .badge{
+      font-size:12px; font-weight:900;
+      padding:4px 8px; border-radius:999px;
+      background:rgba(37,99,235,.10); color:var(--accent2);
+      border:1px solid rgba(37,99,235,.18);
+      white-space:nowrap;
+    }
+
+    /* Tools */
+    .toolGrid{
+      display:grid;
+      grid-template-columns: repeat(2, minmax(0,1fr));
+      gap:10px;
+    }
+    .tool{
+      padding:12px;
+      border:1px solid var(--line);
+      border-radius:14px;
+      background:#fff;
+      display:flex; gap:10px; align-items:flex-start;
+      transition:.12s transform ease, .12s box-shadow ease;
+    }
+    .tool:hover{transform:translateY(-1px); box-shadow:0 10px 24px rgba(15,23,42,.08)}
+    .tIcon{width:28px; height:28px; border-radius:10px; display:flex; align-items:center; justify-content:center;
+      background:rgba(239,68,68,.12); border:1px solid rgba(239,68,68,.18);
+    }
+    .tName{font-weight:900; font-size:13px; line-height:1.15}
+    .tDesc{font-size:12px; color:var(--muted); margin-top:3px}
+
+    /* Main analytics */
+    .summary{
+      display:grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap:12px;
+    }
+    @media (max-width: 980px){
+      .summary{grid-template-columns:1fr}
+    }
+    .kpi{
+      padding:12px 12px 10px;
+      border:1px solid var(--line);
+      border-radius:14px;
+      background:#fff;
+    }
+    .kpiVal{font-size:20px; font-weight:950}
+    .kpiLbl{font-size:12px; color:var(--muted); margin-top:2px}
+
+    .charts{
+      display:grid;
+      grid-template-columns: 2fr 1fr;
+      gap:12px;
+      margin-top:12px;
+    }
+    @media (max-width: 980px){
+      .charts{grid-template-columns:1fr}
+    }
+    .chartCard{padding:12px; border:1px solid var(--line); border-radius:14px; background:#fff}
+    canvas{width:100% !important; height:260px !important;}
+
+    .tableWrap{overflow:auto; border:1px solid var(--line); border-radius:14px; background:#fff}
+    table{border-collapse:collapse; width:100%; min-width:720px}
+    th,td{padding:10px 12px; border-bottom:1px solid rgba(15,23,42,.06); text-align:left; font-size:13px}
+    th{font-size:12px; color:var(--muted); font-weight:900; background:#fafbff; position:sticky; top:0}
+    tr:hover td{background:#fbfcff}
+
+    /* Managers */
+    .tabs{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px}
+    .tabBtn{padding:7px 10px; border-radius:999px; border:1px solid var(--line); background:#fff; cursor:pointer; font-weight:900; font-size:13px; color:var(--muted)}
+    .tabBtn.active{background:#0b1220; color:#fff; border-color:#0b1220}
+    .hintErr{
+      margin-top:10px;
+      padding:10px 12px;
+      border-radius:12px;
+      border:1px dashed rgba(239,68,68,.35);
+      background:rgba(239,68,68,.06);
+      color:#7f1d1d;
+      font-size:13px;
+      display:none;
+    }
+    .miniCard{
+      margin-top:10px;
+      padding:12px;
+      border:1px solid var(--line);
+      border-radius:14px;
+      background:#fff;
+      display:none;
+    }
+    .miniRow{display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-top:6px}
+    .miniStat{font-size:12px; color:var(--muted)}
+    .miniStat b{color:var(--text)}
+  
+.benchWrap{display:none!important;}
+/* === v41 unified width + floating company dropdown === */
+:root{--content-max:1120px;}
+.container{max-width:none !important;}
+/* center ALL major blocks (including grids/tables) inside the padded container */
+.container > .header,
+.container > .grid,
+.container > .card,
+.container > .section,
+.container > section,
+.container > .tableWrap,
+.container > .block,
+.container > .hr,
+.container > .divider{
+  max-width:var(--content-max) !important;
+  margin-left:auto !important;
+  margin-right:auto !important;
+  width:100% !important;
+}
+/* safety: keep inner wide wrappers constrained */
+.wide, .wideWrap, .wideSection, .contentWide, .fullWidthBlock{
+  max-width:var(--content-max) !important;
+  margin-left:auto !important;
+  margin-right:auto !important;
+  width:100% !important;
+}
+/* tables should not force horizontal scroll unless truly necessary */
+.tableWrap{overflow-x:auto;}
+
+.companySuggestDropdown{z-index:999999 !important;}
+
+
+
+/* v43b: hard unify width for passport + nested blocks (some blocks are not direct children) */
+#cardPassport,
+#passportCard,
+.cardPassport,
+.passportRow,
+.passportWrap,
+.passportExtra,
+.passportBlock,
+.container #cardPassport,
+.container #passportCard,
+.container .cardPassport,
+.container .passportRow,
+.container .passportWrap,
+.container .passportExtra,
+.container .passportBlock{
+  max-width:var(--content-max) !important;
+  width:100% !important;
+  margin-left:auto !important;
+  margin-right:auto !important;
+}
+
+
+
+/* UNIFIED_WIDTH_FIX_V44 */
+/* Make all top-level blocks align perfectly under each other */
+:root{ --pageMax: 1120px; }
+.kpiBar{ max-width: var(--pageMax); margin-left:auto; margin-right:auto; }
+.container > .card,
+.container > section,
+.container > .section,
+.container > .tableWrap,
+.container > .block,
+.container > .blockWrap,
+.container > .formSection{
+  max-width: var(--pageMax);
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+}
+/* allow dropdowns to overlay next blocks */
+.card, .section, .tableWrap{ overflow: visible; }
+
+/* Dock collapse */
+.dockHeader{display:flex;align-items:center;justify-content:space-between;gap:10px}
+body.dockCollapsed .quickDock .dockHeader{flex-direction:column;justify-content:flex-start;align-items:center;gap:8px;padding-top:8px}
+body.dockCollapsed .quickDock .dockTitle{width:100%;text-align:center;font-weight:700;font-size:14px;line-height:1.1;white-space:normal}
+body.dockCollapsed .quickDock .dockToggle{width:44px;height:34px;border-radius:12px;padding:0;display:flex;align-items:center;justify-content:center}
+.dockToggle{border:1px solid rgba(0,0,0,.08);background:#fff;border-radius:10px;padding:6px 10px;cursor:pointer;font-weight:700;line-height:1;box-shadow:0 6px 20px rgba(0,0,0,.06)}
+.dockToggle:hover{transform:translateY(-1px)}
+/* --- QuickDock collapsed: icon-only, clean spacing --- */
+body.dockCollapsed .quickDock{width:86px !important; overflow:hidden !important}
+body.dockCollapsed .quickDock .dockSearchWrap,
+body.dockCollapsed .quickDock .dockTitle:not(.dockHeader .dockTitle),
+body.dockCollapsed .quickDock .dockDesc,
+body.dockCollapsed .quickDock .dockToolsTitle,
+body.dockCollapsed .quickDock .dockItemText,
+body.dockCollapsed .quickDock .dockItemSub{display:none !important}
+body.dockCollapsed .quickDock .dockCard{padding:12px !important}
+body.dockCollapsed .quickDock .dockToolBtn{justify-content:center !important}
+body.dockCollapsed .quickDock .dockToolBtn .dockIcon{margin-right:0 !important}
+
+/* tools: single column, only icon */
+body.dockCollapsed .quickDock .toolGrid{grid-template-columns:1fr !important; gap:10px !important}
+body.dockCollapsed .quickDock a.tool{justify-content:center !important; padding:10px !important; gap:0 !important}
+body.dockCollapsed .quickDock a.tool > div:not(.tIcon){display:none !important}
+body.dockCollapsed .quickDock a.tool .tName,
+body.dockCollapsed .quickDock a.tool .tDesc{display:none !important}
+body.dockCollapsed .quickDock a.tool .tIcon{margin:0 !important; width:42px !important; height:42px !important; display:flex !important; align-items:center !important; justify-content:center !important; border-radius:14px !important}
+
+
+/* Dock collapse (v2) */
+.quickDock a.tool{display:flex;align-items:center;gap:10px}
+.quickDock a.tool .toolIcon{flex:0 0 auto;width:28px;height:28px;display:flex;align-items:center;justify-content:center;border-radius:10px;background:rgba(0,0,0,.04)}
+.quickDock a.tool .toolText{display:flex;flex-direction:column;gap:2px}
+.quickDock a.tool .toolText small{opacity:.7}
+body.dockCollapsed .quickDock .dockTitle{display:none !important}
+body.dockCollapsed .quickDock .dockHeader .dockTitle{display:block !important}
+body.dockCollapsed .quickDock a.tool{justify-content:center !important}
+body.dockCollapsed .quickDock a.tool .toolText{display:none !important}
+
+
+
+  /* Dock expanded state must look like the original (wide, with text) */
+  body:not(.dockCollapsed) .quickDock{ width:320px !important; max-width:320px !important; }
+  body:not(.dockCollapsed) .quickDock .dockTitle{ white-space:nowrap; }
+  body:not(.dockCollapsed) .quickDock a.tool{ flex-direction:row; justify-content:flex-start; }
+  body:not(.dockCollapsed) .quickDock a.tool .tIcon{ margin-right:10px; }
+
+</style>
+
+<style id="unifiedWidthAndDropdownFix">
+/* BUILD v60: unify content width across blocks + fix company dropdown clipping */
+:root{
+  --dockW: 340px;
+  --contentW: 1120px;
+  --pagePad: 24px;
+}
+
+/* Keep overall page layout (dock on left) but make ALL content blocks одинаковой ширины */
+.container{
+  max-width: calc(var(--dockW) + var(--contentW) + (var(--pagePad) * 2));
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Every direct block in the main column has the same width and left edge */
+.container > header,
+.container > .card,
+.container > section,
+.container > div{
+  max-width: var(--contentW);
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Don’t accidentally constrain the left dock itself */
+
+/* Tables should not create horizontal page scroll; scroll only inside table card */
+.tableWrap{ overflow-x:auto; }
+
+/* Fix: company suggestions were hidden under card due to overflow:hidden */
+.card{ overflow: visible; }
+.dockSearchWrap{ overflow: visible; }
+.companySuggest{ z-index: 99999; }
+
+ (max-width: 1180px){
+  :root{ --dockW: 0px; --contentW: 980px; }
+  .container{ max-width:none; margin:0; }
+  .container{ padding-left: 24px; }
+}
+
+/* === FORCE unified content width + alignment (v45) === */
+:root{
+  --contentW: 1120px;
+  --contentPad: 22px;
+}
+.container{
+  max-width: var(--contentW) !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+.card, .section, .block, .panel, .kpiBar, .heatWrap, .tableWrap, .table-card, .grid, .grid2, .grid3, .wide, .content, .contentWrap{
+  width: 100% !important;
+  max-width: 100% !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+#passportCard, #passportProject, .passportCard, .passport-project, .passport, .project-passport{
+  width: 100% !important;
+  max-width: 100% !important;
+}
+.center, .centerRow, .passportWrap, .passportRow, .rowCenter{
+  justify-content: flex-start !important;
+}
+.searchWrap, .companySearch, .company-search, .quickSearch, .fastSearch, .inputWrap{
+  position: relative !important;
+  overflow: visible !important;
+  z-index: 50 !important;
+}
+.suggestions, .dropdown, .autocomplete, .companyList, .suggestList{
+  position: absolute !important;
+  z-index: 9999 !important;
+}
+.card, .section, .block, .panel{
+  overflow: visible !important;
+}
+
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div>
+        <div class="h1">PSI Control Center</div>
+        </div>
+      <div class="period" aria-label="Период">
+        <button class="pill active" data-days="30">30д</button>
+        <button class="pill" data-days="90">90д</button>
+        <button class="pill" data-days="180">6м</button>
+        <button class="pill" data-days="365">1г</button>
+        <button class="pill" data-days="0">всё</button>
+      </div>
+    </header>
+
+    <div class="grid">
+      <div class="card pad">
+        <div class="sectionTitle">Быстрый вход</div>
+        <div class="searchWrap">
+          <div class="icon">🔎</div>
+          <input id="companyInput" class="search" placeholder="Введите компанию (например: ООО РЛТ, Ром)" autocomplete="off"/>
+        </div>
+        <div id="suggestBox" class="suggest" role="listbox"></div>
+
+        <div id="miniCRM" class="miniCard">
+          <div style="font-weight:950; font-size:14px" id="miniCompany">—</div>
+          <div class="miniRow">
+            <div class="miniStat"><b id="miniPsi">—</b> PSI</div>
+            <div class="miniStat"><b id="miniReady">—</b> готовность</div>
+            <div class="miniStat"><b id="miniRisk">—</b> риск</div>
+            <div class="miniStat"><b id="miniUpd">—</b> обновлено (МСК)</div>
+          </div>
+          <div class="miniRow" style="margin-top:10px">
+            <a class="btn secondary" id="openFullBtn" href="view_5_full.html?v=92">Открыть полную карту</a>
+            <a class="btn ghost" id="openInterviewBtn" href="view_2_interview.html?v=92">Интервью</a>
+          </div>
+          <div class="miniRow" style="margin-top:8px">
+            <a class="btn ghost" id="openIndicesBtn" href="view_1_indices.html?v=92">Индексы</a>
+            <a class="btn ghost" id="openReqBtn" href="view_3_requirements.html?v=92">Требования</a>
+            <a class="btn ghost" id="openProdBtn" href="view_3b_product.html?v=92">Продукт</a>
+            <a class="btn ghost" id="openPsiBtn" href="view_4_psi.html?v=92">ПСИ</a>
+          </div>
+        </div>
+
+        <div style="height:12px"></div>
+        <div class="sectionTitle">Инструменты</div>
+        <div class="toolGrid">
+  <a class="tool" href="index.html"><div class="tIcon">🏠</div><div><div class="tName">Дашборд</div><div class="tDesc">PSI Control Center</div></div></a>
+  <a class="tool" href="view_1_indices.html"><div class="tIcon">📊</div><div><div class="tName">Индексы</div><div class="tDesc">итоги</div></div></a>
+  <a class="tool" href="view_2_interview.html"><div class="tIcon">🎯</div><div><div class="tName">Интервью</div><div class="tDesc">1–3</div></div></a>
+  <a class="tool" href="view_3_requirements.html"><div class="tIcon">🧪</div><div><div class="tName">Пилот</div><div class="tDesc">раздел 4</div></div></a>
+  <a class="tool" href="view_3b_product.html"><div class="tIcon">🧩</div><div><div class="tName">Продукт</div><div class="tDesc">раздел 6</div></div></a>
+  <a class="tool" href="view_4_psi.html"><div class="tIcon">📄</div><div><div class="tName">ПСИ</div><div class="tDesc">раздел 5</div></div></a>
+  <a class="tool" href="view_5_full.html"><div class="tIcon">🗺️</div><div><div class="tName">Полная карта</div><div class="tDesc">всё</div></div></a>
+  <a class="tool" href="view_6_summary.html"><div class="tIcon">🧾</div><div><div class="tName">Выводы</div><div class="tDesc">итоги по компании</div></div></a>
+  <a class="tool" href="view_7_calculator.html"><div class="tIcon">🧮</div><div><div class="tName">Калькулятор</div><div class="tDesc">спецификация</div></div></a>
+  <a class="tool" href="view_business_needs.html"><div class="tIcon">🧠</div><div><div class="tName">Боли и потребности</div><div class="tDesc">BN</div></div></a>
+  <a class="tool" href="view_fast_interview.html"><div class="tIcon">⚡</div><div><div class="tName">Fast интервью</div><div class="tDesc">3–5 вопросов</div></div></a>
+</div>
+      </div>
+      <div class="card pad">
+        <div class="sectionTitle">Портфельная аналитика</div>
+
+        <div class="summary">
+          <div class="kpi"><div class="kpiVal" id="kpiRuns">—</div><div class="kpiLbl">Записей (runs)</div></div>
+          <div class="kpi"><div class="kpiVal" id="kpiCompanies">—</div><div class="kpiLbl">Компаний</div></div>
+          <div class="kpi"><div class="kpiVal" id="kpiAvgPsi">—</div><div class="kpiLbl">Средний PSI (последний по компании)</div></div>
+          <div class="kpi"><div class="kpiVal" id="kpiPortfolioReady">—</div><div class="kpiLbl">Индекс зрелости портфеля</div></div>
+          <div class="kpi"><div class="kpiVal" id="kpiWinProb">—</div><div class="kpiLbl">Portfolio Win Probability</div></div>
+          <div class="kpi"><div class="kpiVal" id="kpiSynthRatio">—</div><div class="kpiLbl">Доля синтетики (средняя)</div></div>
+        </div>
+
+        <div class="charts">
+          <div class="chartCard">
+            <div class="sectionTitle" style="margin:0 0 8px">Динамика PSI</div>
+            <canvas id="psiChart"></canvas>
+          </div>
+          <div class="chartCard">
+            <div class="sectionTitle" style="margin:0 0 8px">Динамика вероятности</div>
+            <canvas id="probChart"></canvas>
+          </div>
+        </div>
+
+        
+        <div style="height:12px"></div>
+        <div class="sectionTitle">Реальные данные vs синтетика</div>
+        <div class="charts" style="grid-template-columns: 1fr 1fr; margin-top:10px">
+          <div class="chartCard">
+            <div class="sectionTitle" style="margin:0 0 8px">Топ‑5 “настоящих” кейсов (минимум синтетики)</div>
+            <div id="topReal" class="muted" style="font-size:13px">—</div>
+          </div>
+          <div class="chartCard">
+            <div class="sectionTitle" style="margin:0 0 8px">Топ‑5 “фантазий” (максимум синтетики)</div>
+            <div id="topFantasy" class="muted" style="font-size:13px">—</div>
+          </div>
+        </div>
+
+        <div style="height:12px"></div>
+        <div class="sectionTitle">Heatmap по отраслям</div>
+        <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:10px">
+          <select id="industryFilter" style="padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:#fff;font-weight:800">
+            <option value="">Все отрасли</option>
+          </select>
+          <div class="muted" style="font-size:13px">Бюджет = workplaces × 1300</div>
+        </div>
+        <div class="tableWrap">
+          <table>
+            <thead><tr><th>Отрасль</th><th>Компаний</th><th>Средний PSI</th><th>Средний бюджет</th></tr></thead>
+            <tbody id="industryTbody"></tbody>
+          </table>
+        </div>
+
+        <div style="height:12px"></div>
+        <div class="sectionTitle">“Горячая зона”</div>
+        <div class="tableWrap">
+          <table>
+            <thead><tr><th>Компания</th><th>Вероятность</th><th>Готовность</th><th>Риск</th><th>Отрасль</th><th>Бюджет</th></tr></thead>
+            <tbody id="hotTbody"></tbody>
+          </table>
+        </div>
+
+<div style="height:12px"></div>
+        <div class="sectionTitle">Последние компании</div>
+        <div class="tableWrap">
+          <table>
+            <thead><tr><th>Компания</th><th>PSI</th><th>Готовность</th><th>Риск</th><th>Обновлено (МСК)</th></tr></thead>
+            <tbody id="latestTbody"></tbody>
+          </table>
+        </div>
+
+        <div style="height:12px"></div>
+        <div class="sectionTitle">Аналитика по менеджерам</div>
+        <div class="tabs">
+          <button class="tabBtn active" data-tab="sales">Sales</button>
+          <button class="tabBtn" data-tab="presale">Pre‑Sales</button>
+          <button class="tabBtn" data-tab="pairs">Связки</button>
+        </div>
+
+        <div id="tab_sales" class="tableWrap">
+          <table><thead><tr>
+            <th>Sales</th><th>Записей</th><th>PSI</th><th>Готовн.</th><th>Вероятн.</th><th>Синтетика</th><th>Cold</th><th>Warm</th><th>Hot</th><th>Conv</th>
+          </tr></thead><tbody id="salesTbody"></tbody></table>
+        </div>
+
+        <div id="tab_presale" class="tableWrap" style="display:none">
+          <table><thead><tr>
+            <th>Pre‑Sales</th><th>Записей</th><th>PSI</th><th>Готовн.</th><th>Вероятн.</th><th>Синтетика</th><th>Cold</th><th>Warm</th><th>Hot</th><th>Conv</th>
+          </tr></thead><tbody id="presaleTbody"></tbody></table>
+        </div>
+
+        <div id="tab_pairs" class="tableWrap" style="display:none">
+          <table><thead><tr>
+            <th>Связка</th><th>Записей</th><th>PSI</th><th>Готовн.</th><th>Вероятн.</th><th>Синтетика</th><th>Cold</th><th>Warm</th><th>Hot</th><th>Conv</th>
+          </tr></thead><tbody id="pairsTbody"></tbody></table>
+        </div>
+
+        <div id="errBox" class="hintErr"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script>
+    const WEBAPP_URL = (window.GS_WEBAPP_URL || "").trim();
+    if(!WEBAPP_URL){ console.warn("GS_WEBAPP_URL is empty. Check config.js"); }
+
+console.log("✅ Using Google Sheets WebApp URL:", WEBAPP_URL);
+
+    function jsonp(url, timeoutMs=12000){
+      return new Promise((resolve, reject) => {
+        const cb = "cb_" + Math.random().toString(36).slice(2);
+        const script = document.createElement("script");
+        const timer = setTimeout(() => { cleanup(); reject(new Error("JSONP timeout")); }, timeoutMs);
+
+        function cleanup(){
+          clearTimeout(timer);
+          try{ delete window[cb]; }catch(e){ window[cb]=undefined; }
+          if (script.parentNode) script.parentNode.removeChild(script);
+        }
+
+        window[cb] = (data) => { cleanup(); resolve(data); };
+        const sep = url.includes("?") ? "&" : "?";
+        script.src = url + sep + "callback=" + encodeURIComponent(cb);
+        script.onerror = () => { cleanup(); reject(new Error("JSONP load error")); };
+        document.body.appendChild(script);
+      });
+    }
+
+    function escapeHtml(s){
+      return String(s ?? "")
+        .replaceAll("&","&amp;")
+        .replaceAll("<","&lt;")
+        .replaceAll(">","&gt;")
+        .replaceAll('"',"&quot;")
+        .replaceAll("'","&#039;");
+    }
+    function fmtMsk(iso){
+      if(!iso) return "—";
+      try{
+        const d = new Date(iso);
+        const dt = new Intl.DateTimeFormat("ru-RU", {
+          timeZone:"Europe/Moscow",
+          year:"numeric", month:"2-digit", day:"2-digit",
+          hour:"2-digit", minute:"2-digit"
+        }).format(d);
+        const parts = dt.split(", ");
+        if(parts.length === 2){
+          return "<b>"+parts[0]+"</b> <span style=\"font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace\">"+parts[1]+"</span> <span class=\"muted\">МСК</span>";
+        }
+        return dt;
+      }catch(e){
+        return escapeHtml(String(iso));
+      }
+    }
+    function fmtPct(v){ if(v==null||v==="") return "—"; const n = Number(v); if(!isFinite(n)) return "—"; return Math.round(n) + "%"; }
+    function fmtSynth(v){ if(v==null||v==="") return "—"; const n = Number(v); if(!isFinite(n)) return "—"; return n.toFixed(1); }
+
+    const errBox = document.getElementById("errBox");
+    function showErr(msg){ errBox.style.display="block"; errBox.textContent = msg; }
+    function clearErr(){ errBox.style.display="none"; errBox.textContent=""; }
+
+    // Search
+    const companyInput = document.getElementById("companyInput");
+    const suggestBox = document.getElementById("suggestBox");
+    const miniCRM = document.getElementById("miniCRM");
+    let selectedRow = null;
+    let searchTimer = null;
+
+    companyInput.addEventListener("input", () => {
+      clearTimeout(searchTimer);
+      const q = companyInput.value.trim();
+      if(q.length < 3){ suggestBox.style.display="none"; suggestBox.innerHTML=""; return; }
+      searchTimer = setTimeout(() => runSearch(q), 250);
+    });
+
+    async function runSearch(q){
+      try{
+        const url = WEBAPP_URL + "?action=search&q=" + encodeURIComponent(q) + "&limit=25";
+        const data = await jsonp(url);
+        if(!data || !data.ok) { showErr("Поиск: ошибка ответа Apps Script (action=search)."); return; }
+        const items = Array.isArray(data.items) ? data.items : [];
+        if(!items.length){ suggestBox.style.display="none"; suggestBox.innerHTML=""; return; }
+
+        const map = new Map();
+        for(const it of items){
+          const name = (it.company||"").trim();
+          if(!name) continue;
+          const ts = it.timestamp || "";
+          const row = it.row;
+          const prev = map.get(name);
+          if(!prev) map.set(name, {name, latestTs:ts, latestRow:row, count:1});
+          else{
+            prev.count++;
+            if(ts && (!prev.latestTs || ts > prev.latestTs)){ prev.latestTs = ts; prev.latestRow = row; }
+          }
+        }
+
+        const list = Array.from(map.values()).sort((a,b) => (b.latestTs||"").localeCompare(a.latestTs||""));
+        suggestBox.innerHTML = list.slice(0,10).map(it => {
+          const extra = it.count>1 ? "<span class=\"badge\">+"+(it.count-1)+"</span>" : "";
+          return "<div class=\"sItem\" data-row=\""+it.latestRow+"\" data-company=\""+escapeHtml(it.name)+"\">"
+              + "<div><div class=\"sName\">"+escapeHtml(it.name)+"</div>"
+              + "<div class=\"sMeta\">Обновлено: "+fmtMsk(it.latestTs)+"</div></div>"
+              + extra + "</div>";
+        }).join("");
+
+        suggestBox.style.display="block";
+
+        suggestBox.querySelectorAll(".sItem").forEach(el => {
+          el.addEventListener("click", async () => {
+            const row = el.getAttribute("data-row");
+            selectedRow = row ? Number(row) : null;
+            companyInput.value = el.getAttribute("data-company") || companyInput.value;
+            suggestBox.style.display="none";
+            await loadCompanyCardByRow(selectedRow);
+          });
+        });
+      }catch(e){
+        showErr("Поиск: не удалось обратиться к Apps Script. Проверьте URL и доступ Web App.");
+      }
+    }
+
+    async function loadCompanyCardByRow(row){
+      if(!row) return;
+      try{
+        const url = WEBAPP_URL + "?action=get&row=" + encodeURIComponent(String(row));
+        const data = await jsonp(url);
+        if(!data || !data.ok || !data.payload){ showErr("Не удалось загрузить данные компании (action=get)."); return; }
+
+        const p = data.payload || {};
+        const psi = p.psiTotal ?? p.psi_total ?? p.psi;
+        const ready = p.readyIndex ?? p.ready_index ?? p.ready;
+        const risk = p.riskIndex ?? p.risk_index ?? p.risk;
+        const ts = p.timestamp || null;
+
+        document.getElementById("miniCompany").textContent = (p.company || companyInput.value || "—");
+        document.getElementById("miniPsi").textContent = fmtPct(psi);
+        document.getElementById("miniReady").textContent = fmtPct(ready);
+        document.getElementById("miniRisk").textContent = (risk==null||risk==="") ? "—" : String(risk);
+        document.getElementById("miniUpd").innerHTML = fmtMsk(ts);
+
+        // links with company param
+        const qs = p.company ? ("?company="+encodeURIComponent(p.company)) : "";
+        document.getElementById("openFullBtn").href = "view_5_full.html"+qs;
+        document.getElementById("openInterviewBtn").href = "view_2_interview.html"+qs;
+        document.getElementById("openIndicesBtn").href = "view_1_indices.html"+qs;
+        document.getElementById("openReqBtn").href = "view_3_requirements.html"+qs;
+        document.getElementById("openProdBtn").href = "view_3b_product.html"+qs;
+        document.getElementById("openPsiBtn").href = "view_4_psi.html"+qs;
+
+        miniCRM.style.display="block";
+        clearErr();
+      }catch(e){
+        showErr("Не удалось загрузить данные компании. Проверьте Apps Script Web App.");
+      }
+    }
+
+    // Charts & stats
+    let psiChart=null, probChart=null;
+    function ensureCharts(){
+      if(!psiChart){
+        psiChart = new Chart(document.getElementById("psiChart"), {
+          type:"line",
+          data:{ labels:[], datasets:[{ label:"PSI", data:[] }] },
+          options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{ y:{beginAtZero:true, max:100} } }
+        });
+      }
+      if(!probChart){
+        probChart = new Chart(document.getElementById("probChart"), {
+          type:"line",
+          data:{ labels:[], datasets:[{ label:"Вероятность", data:[] }] },
+          options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{ y:{beginAtZero:true, max:100} } }
+        });
+      }
+    }
+
+    function renderManagers(mgr){
+      const sales = (mgr && (mgr.sales || mgr.bySales)) || [];
+      const presale = (mgr && (mgr.presale || mgr.byPresale)) || [];
+      const pairs = (mgr && (mgr.pairs || mgr.byPairs)) || [];
+
+      const fill = (tbodyId, arr, nameKey) => {
+        const tbody = document.getElementById(tbodyId);
+        const list = Array.isArray(arr) ? arr : [];
+        tbody.innerHTML = list.slice(0,20).map(it => {
+          const funnel = it.funnel || {};
+          const cold = funnel.cold ?? 0, warm = funnel.warm ?? 0, hot = funnel.hot ?? 0;
+          const conv = it.conv ?? it.conversion ?? null;
+          const name = it[nameKey] ?? it.key ?? "—";
+          const runs = it.runs ?? it.count ?? "—";
+          return "<tr>"
+            + "<td><b>"+escapeHtml(name)+"</b></td>"
+            + "<td>"+escapeHtml(String(runs))+"</td>"
+            + "<td>"+fmtPct(it.avg_psi)+"</td>"
+            + "<td>"+fmtPct(it.avg_ready)+"</td>"
+            + "<td>"+fmtPct(it.avg_prob)+"</td>"
+            + "<td>"+fmtSynth(it.avg_synth)+"</td>"
+            + "<td>"+escapeHtml(String(cold))+"</td>"
+            + "<td>"+escapeHtml(String(warm))+"</td>"
+            + "<td>"+escapeHtml(String(hot))+"</td>"
+            + "<td>"+(conv==null ? "—" : (Number(conv).toFixed(1)+"%"))+"</td>"
+            + "</tr>";
+        }).join("") || "<tr><td colspan=\"10\" class=\"muted\" style=\"padding:14px\">Нет данных</td></tr>";
+      };
+
+      fill("salesTbody", sales, "name");
+      fill("presaleTbody", presale, "name");
+      fill("pairsTbody", pairs, "key");
+    }
+
+
+    function num(v){ const n = Number(v); return isFinite(n) ? n : null; }
+    function budgetFrom(r){
+      const w = num(r.workplaces ?? r.wp ?? r.workplaces_count);
+      if(w==null) return null;
+      return w * 1300;
+    }
+    function pickLatestPerCompany(data){
+      // Prefer server-provided arrays if present
+      const cand = data.latestByCompany || data.latest_by_company || data.perCompany || data.companiesLatest || data.company_latest || data.companies_latest || data.latest_records || data.latestRecords;
+      if(Array.isArray(cand) && cand.length) return cand;
+
+      // Fallback: if server sends raw runs list, group by company+timestamp
+      const runs = (Array.isArray(data.runs)?data.runs:null) || data.items || data.rows || data.all || data.data || data.latest_records || data.latestRecords;
+      if(Array.isArray(runs) && runs.length){
+        const m = new Map();
+        for(const r of runs){
+          const name = (r.company||"").trim();
+          if(!name) continue;
+          const ts = r.timestamp || r.ts || r.updated || "";
+          const prev = m.get(name);
+          if(!prev || (ts && (!prev.timestamp || ts > prev.timestamp))) m.set(name, {...r, company:name, timestamp:ts});
+        }
+        return Array.from(m.values());
+      }
+      // Last-resort: use data.latest (can be truncated to 10)
+      return Array.isArray(data.latest) ? data.latest : [];
+    }
+
+    async function loadStats(days){
+      try{
+        const url = WEBAPP_URL + "?action=stats&period=" + encodeURIComponent(String(days||0));
+        const data = await jsonp(url);
+        if(!data || !data.ok){ showErr("Нет данных для аналитики. Проверьте, что в Apps Script развернута версия с action=stats."); return; }
+        clearErr();
+
+        const s = data.summary || {};
+        const runsVal = (s.runs ?? data.runs ?? data.total_rows ?? data.totalRows ?? "—");
+        const companiesVal = (s.companies ?? data.companies ?? data.latest_companies ?? data.latestCompanies ?? "—");
+        document.getElementById("kpiRuns").textContent = runsVal;
+        document.getElementById("kpiCompanies").textContent = companiesVal;
+
+        const latestCompanies = pickLatestPerCompany(data);
+        if(!latestCompanies || !latestCompanies.length){
+          showErr("Данных для графиков нет: убедитесь, что Apps Script action=stats возвращает список latest/rows. Синхронизация форм не гарантирует выдачу аналитики.");
+        }
+        // Avg PSI by latest record per company
+        const psiVals = latestCompanies.map(r => num(r.psi ?? r.psi_total ?? r.psiTotal)).filter(v => v!=null);
+        const avgPsi = psiVals.length ? (psiVals.reduce((a,b)=>a+b,0)/psiVals.length) : null;
+        document.getElementById("kpiAvgPsi").textContent = (avgPsi!=null) ? (Math.round(avgPsi) + "%") : "—";
+
+        // Portfolio Readiness Index (avg readyIndex)
+        const readyVals = latestCompanies.map(r => num(r.readyIndex ?? r.ready ?? r.ready_index)).filter(v => v!=null);
+        const avgReady = readyVals.length ? (readyVals.reduce((a,b)=>a+b,0)/readyVals.length) : null;
+        const readyEl = document.getElementById("kpiPortfolioReady");
+        if(avgReady==null) readyEl.textContent="—";
+        else{
+          const tag = avgReady < 40 ? "сырой" : (avgReady < 60 ? "рабочий" : "зрелый");
+          readyEl.textContent = Math.round(avgReady) + "% · " + tag;
+        }
+
+        // Portfolio Win Probability = weighted avg probability by budget (workplaces*1300)
+        const probRows = latestCompanies.map(r => {
+          const p = num(r.probability ?? r.prob ?? r.probIndex ?? r.prob_index);
+          const b = budgetFrom(r);
+          return {p, w:(b!=null && b>0)? b : 1};
+        }).filter(x => x.p!=null);
+        const winProb = probRows.length ? (probRows.reduce((a,x)=>a + x.p*x.w,0) / probRows.reduce((a,x)=>a + x.w,0)) : null;
+        document.getElementById("kpiWinProb").textContent = (winProb!=null) ? (Math.round(winProb) + "%") : "—";
+
+        // Synthetic Ratio = synthetic_count / total_fields
+        const synthRows = latestCompanies.map(r => {
+          const sc = num(r.synthetic_count ?? r.synth ?? r.benchCount ?? r.bench_count);
+          const tf = num(r.total_fields ?? r.totalFields ?? r.fields_total);
+          if(sc==null || tf==null || tf<=0) return null;
+          return {company:r.company||"—", ratio: sc/tf, sc, tf, sales:(r.sales||"").trim(), presale:(r.presale||r.preSales||"").trim()};
+        }).filter(Boolean);
+        const avgSynth = synthRows.length ? (synthRows.reduce((a,x)=>a+x.ratio,0)/synthRows.length) : null;
+        document.getElementById("kpiSynthRatio").textContent = (avgSynth!=null) ? (Math.round(avgSynth*100) + "%") : "—";
+
+
+        ensureCharts();
+        const series = data.series || { labels:[], psi:[], prob:[] };
+        psiChart.data.labels = series.labels || [];
+        psiChart.data.datasets[0].data = series.psi || [];
+        psiChart.update();
+
+        probChart.data.labels = series.labels || [];
+        probChart.data.datasets[0].data = series.prob || [];
+        probChart.update();
+
+        const tb = document.getElementById("latestTbody");
+        const latestUnique = (latestCompanies||[]).slice(0,10);
+        tb.innerHTML = latestUnique.map(r =>
+          "<tr>"
+            + "<td><b>"+escapeHtml(r.company || "—")+"</b></td>"
+            + "<td>"+fmtPct(r.psi)+"</td>"
+            + "<td>"+fmtPct(r.ready)+"</td>"
+            + "<td>"+escapeHtml(String(r.risk ?? "—"))+"</td>"
+            + "<td>"+fmtMsk(r.timestamp)+"</td>"
+          + "</tr>"
+        ).join("") || "<tr><td colspan=\"5\" class=\"muted\" style=\"padding:14px\">Нет данных</td></tr>";
+
+        renderManagers(data.managers || data.byManagers || null);
+        // Top-5 real vs fantasy
+        if(synthRows.length){
+          const real = [...synthRows].sort((a,b)=>a.ratio-b.ratio).slice(0,5);
+          const fant = [...synthRows].sort((a,b)=>b.ratio-a.ratio).slice(0,5);
+          const fmtList = (arr) => arr.map(x => `• <b>${escapeHtml(x.company)}</b> — ${(x.ratio*100).toFixed(0)}%`).join("<br>") || "—";
+          document.getElementById("topReal").innerHTML = fmtList(real);
+          document.getElementById("topFantasy").innerHTML = fmtList(fant);
+        }else{
+          document.getElementById("topReal").textContent = "—";
+          document.getElementById("topFantasy").textContent = "—";
+        }
+
+        // Industry heatmap
+        const indMap = new Map();
+        for(const r of latestCompanies){
+          const ind = (r.industry || r.segment || r.ind || "—").trim() || "—";
+          const psi = num(r.psi ?? r.psi_total ?? r.psiTotal);
+          const b = budgetFrom(r);
+          const cur = indMap.get(ind) || {industry:ind, count:0, psiSum:0, psiN:0, budSum:0, budN:0};
+          cur.count++;
+          if(psi!=null){ cur.psiSum += psi; cur.psiN++; }
+          if(b!=null){ cur.budSum += b; cur.budN++; }
+          indMap.set(ind, cur);
+        }
+        const indListAll = Array.from(indMap.values()).map(x => ({
+          industry:x.industry,
+          count:x.count,
+          avgPsi: x.psiN ? x.psiSum/x.psiN : null,
+          avgBudget: x.budN ? x.budSum/x.budN : null
+        })).sort((a,b)=> (b.avgBudget||0) - (a.avgBudget||0));
+
+        const sel = document.getElementById("industryFilter");
+        const current = sel.value;
+        // fill options once
+        if(sel.options.length <= 1){
+          const inds = [...new Set(indListAll.map(x=>x.industry))].sort((a,b)=>a.localeCompare(b));
+          for(const i of inds){
+            const opt = document.createElement("option");
+            opt.value = i; opt.textContent = i;
+            sel.appendChild(opt);
+          }
+        }
+        if(current && !indMap.has(current)) sel.value = "";
+
+        const renderIndustry = () => {
+          const v = sel.value;
+          const list = v ? indListAll.filter(x=>x.industry===v) : indListAll;
+          const tbody = document.getElementById("industryTbody");
+          tbody.innerHTML = list.map(x => 
+            `<tr><td><b>${escapeHtml(x.industry)}</b></td><td>${x.count}</td><td>${x.avgPsi==null?"—":Math.round(x.avgPsi)+"%"}</td><td>${x.avgBudget==null?"—":Math.round(x.avgBudget).toLocaleString("ru-RU")} ₽</td></tr>`
+          ).join("") || `<tr><td colspan="4" class="muted" style="padding:14px">Нет данных</td></tr>`;
+        };
+        sel.onchange = renderIndustry;
+        renderIndustry();
+
+        // Hot zone
+        const hot = latestCompanies.map(r => {
+          const prob = num(r.probability ?? r.prob ?? r.probIndex ?? r.prob_index);
+          const ready = num(r.readyIndex ?? r.ready ?? r.ready_index);
+          const risk = num(r.riskIndex ?? r.risk ?? r.risk_index);
+          const ind = (r.industry || "—").trim() || "—";
+          const bud = budgetFrom(r);
+          return {company:r.company||"—", prob, ready, risk, ind, bud};
+        }).filter(x => x.prob!=null && x.ready!=null && x.risk!=null)
+          .filter(x => x.prob > 70 && x.ready > 60 && x.risk < 2)
+          .sort((a,b)=> (b.bud||0)-(a.bud||0));
+
+        const hotTb = document.getElementById("hotTbody");
+        hotTb.innerHTML = hot.map(x =>
+          `<tr><td><b>${escapeHtml(x.company)}</b></td><td>${Math.round(x.prob)}%</td><td>${Math.round(x.ready)}%</td><td>${x.risk}</td><td>${escapeHtml(x.ind)}</td><td>${x.bud==null?"—":Math.round(x.bud).toLocaleString("ru-RU")} ₽</td></tr>`
+        ).join("") || `<tr><td colspan="6" class="muted" style="padding:14px">Нет компаний в “горячей зоне”</td></tr>`;
+
+      }catch(e){
+        showErr("Аналитика: не удалось обратиться к Apps Script (action=stats). Убедитесь, что деплой с stats опубликован и доступен.");
+      }
+    }
+
+    // tabs
+    document.querySelectorAll(".tabBtn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".tabBtn").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        const tab = btn.getAttribute("data-tab");
+        document.getElementById("tab_sales").style.display = (tab==="sales") ? "block" : "none";
+        document.getElementById("tab_presale").style.display = (tab==="presale") ? "block" : "none";
+        document.getElementById("tab_pairs").style.display = (tab==="pairs") ? "block" : "none";
+      });
+    });
+
+    // period buttons
+    let currentDays = 30;
+    document.querySelectorAll(".pill").forEach(p => {
+      p.addEventListener("click", () => {
+        document.querySelectorAll(".pill").forEach(x => x.classList.remove("active"));
+        p.classList.add("active");
+        currentDays = Number(p.getAttribute("data-days") || "30");
+        loadStats(currentDays);
+      });
+    });
+
+    loadStats(currentDays);
+  </script>
+
+<script>
+
+/* === ITMEN CSP-SAFE SAVE OVERRIDE (FORM POST) === */
+function syncToGoogleSheets(){
+  const base = (typeof window!=="undefined" && (window.GS_WEBAPP_URL || window.GOOGLE_SHEETS_WEBAPP_URL)) ? String(window.GS_WEBAPP_URL || window.GOOGLE_SHEETS_WEBAPP_URL).trim() : "";
+  if(!base){ console.warn("Google Sheets URL is not set"); return; }
+  const actionUrl = base + (base.includes("?") ? "&" : "?") + "action=save";
+  const payload = (typeof buildSheetPayloadExact==="function") ? buildSheetPayloadExact() : {};
+  // create hidden iframe + form
+  let ifr = document.getElementById("gsHiddenFrame");
+  if(!ifr){
+    ifr = document.createElement("iframe");
+    ifr.id = "gsHiddenFrame";
+    ifr.name = "gsHiddenFrame";
+    ifr.style.display = "none";
+    document.body.appendChild(ifr);
+  }
+  let form = document.getElementById("gsHiddenForm");
+  if(!form){
+    form = document.createElement("form");
+    form.id = "gsHiddenForm";
+    form.method = "POST";
+    form.target = "gsHiddenFrame";
+    form.style.display = "none";
+    document.body.appendChild(form);
+  }
+  form.action = actionUrl;
+  let inp = form.querySelector('input[name="payload"]');
+  if(!inp){
+    inp = document.createElement("input");
+    inp.type = "hidden";
+    inp.name = "payload";
+    form.appendChild(inp);
+  }
+  inp.value = JSON.stringify(payload);
+  try{ form.submit(); console.log("✅ Sheets sync sent (form-post)"); }
+  catch(e){ console.error("❌ Sheets sync failed (form-post)", e); }
+}
+/* === end override === */
+
+</script>
+
+
+<script>
+(function(){
+  try{
+    window.BUILD_VERSION = "v62";
+    // Update any build badges if present
+    const badge = document.querySelector('#buildBadge, .buildBadge, [data-build-badge]');
+    if(badge) badge.textContent = "BUILD v62";
+    console.log("✅ BUILD v62 loaded");
+  }catch(_){}
+  const _id = (x)=>document.getElementById(x);
+
+  // Required validation: ONLY company is required
+  window.validateRequired = window.validateRequired || function(){
+    const c = _id('company') || _id('dockCompany');
+    return !!(c && String(c.value||'').trim());
+  };
+
+  // Some pages call setMode(); keep it as a safe no-op (mode toggles handled elsewhere)
+  window.setMode = window.setMode || function(){};
+
+  // Fallback payload builder: collect all fields by id (unknown keys are ignored by Sheets writer)
+  function fallbackPayload(){
+    const obj = {};
+    document.querySelectorAll('input,select,textarea').forEach(el=>{
+      if(!el || !el.id) return;
+      if(el.disabled) return;
+      const t = (el.type||'').toLowerCase();
+      if(t === 'radio'){
+        if(!el.checked) return;
+        obj[el.name || el.id] = el.value;
+        return;
+      }
+      if(t === 'checkbox'){
+        obj[el.id] = el.checked ? 'да' : 'нет';
+        return;
+      }
+      obj[el.id] = el.value;
+    });
+    // ensure company key exists
+    if(!obj.company){
+      const c = _id('company') || _id('dockCompany');
+      if(c && String(c.value||'').trim()) obj.company = String(c.value||'').trim();
+    }
+    return obj;
+  }
+
+  // Make buildSheetPayloadExact safe
+  if(typeof window.buildSheetPayloadExact === 'function'){
+    const _orig = window.buildSheetPayloadExact;
+    window.buildSheetPayloadExact = function(){
+      try{
+        return _orig();
+      }catch(e){
+        console.warn("buildSheetPayloadExact failed → using fallback payload", e);
+        return fallbackPayload();
+      }
+    };
+  } else {
+    window.buildSheetPayloadExact = fallbackPayload;
+  }
+
+  // Make recalc safe (must not block save/excel)
+  if(typeof window.recalc === 'function' && typeof window.safeRecalc !== 'function'){
+    window.safeRecalc = function(){
+      try{ return window.recalc(); }
+      catch(e){ console.warn("recalc failed (ignored)", e); return null; }
+    };
+  }
+
+  // Patch recalc button handlers (if any) to use safeRecalc then sync
+  if(typeof window.handleRecalcClick === 'function'){
+    const _h = window.handleRecalcClick;
+    window.handleRecalcClick = function(ev){
+      try{
+        if(typeof window.safeRecalc === 'function') window.safeRecalc();
+        return _h(ev);
+      }catch(e){
+        console.warn("handleRecalcClick failed", e);
+      }
+    };
+  }
+
+  // Ensure Excel export doesn't crash due to recalc
+  if(typeof window.exportExcel === 'function'){
+    const _ex = window.exportExcel;
+    window.exportExcel = function(){
+      try{ if(typeof window.safeRecalc === 'function') window.safeRecalc(); }catch(_){}
+      return _ex.apply(this, arguments);
+    };
+  }
+})();
+</script>
+
+<script>
+/* HOTFIX v64: run_id/timestamp + missing helpers guard (all pages) */
+(function(){
+  try{
+    // 1) Ensure SHEET_KEYS contains meta columns
+    if(Array.isArray(window.SHEET_KEYS)){
+      if(!window.SHEET_KEYS.includes('run_id')) window.SHEET_KEYS.unshift('run_id');
+      if(!window.SHEET_KEYS.includes('timestamp')) window.SHEET_KEYS.unshift('timestamp');
+    }
+
+    // 2) Meta generators
+    function genRunId(){
+      const r = Math.random().toString(36).slice(2,10);
+      return 'run_' + Date.now() + '_' + r;
+    }
+    function isoNow(){
+      return new Date().toISOString();
+    }
+
+    function ensureMetaOnRow(row){
+      if(!row || typeof row !== 'object') return row;
+      if(!row.run_id) row.run_id = genRunId();
+      if(!row.timestamp) row.timestamp = isoNow();
+      return row;
+    }
+
+    // 3) Patch buildSheetPayloadExact to always include meta
+    if(typeof window.buildSheetPayloadExact === 'function'){
+      const origBuild = window.buildSheetPayloadExact;
+      window.buildSheetPayloadExact = function(){
+        const p = origBuild.apply(this, arguments);
+        // expected shape: {sheet_name, row}
+        if(p && typeof p === 'object'){
+          if(p.row && typeof p.row === 'object') ensureMetaOnRow(p.row);
+          else ensureMetaOnRow(p);
+        }
+        return p;
+      };
+    }
+
+    // 4) Guard missing helpers so recalc/save/export never crashes
+    if(typeof window.validateRequired !== 'function'){
+      window.validateRequired = function(){ return true; };
+    }
+    if(typeof window.setMode !== 'function'){
+      window.setMode = function(){ /* noop */ };
+    }
+    if(typeof window.computeCriticality !== 'function'){
+      window.computeCriticality = function(){ return { criticality: 0, label: '—' }; };
+    }
+    if(typeof window.maturityLevel !== 'function'){
+      window.maturityLevel = function(v){
+        const n = Number(v);
+        if(!isFinite(n)) return { level: '—', score: 0 };
+        if(n >= 0.66) return { level: 'Высокая', score: n };
+        if(n >= 0.33) return { level: 'Средняя', score: n };
+        return { level: 'Низкая', score: n };
+      };
+    }
+
+    // 5) If syncToGoogleSheets exists, ensure meta before sending (defensive)
+    if(typeof window.syncToGoogleSheets === 'function'){
+      const origSync = window.syncToGoogleSheets;
+      window.syncToGoogleSheets = async function(){
+        try{
+          if(typeof window.buildSheetPayloadExact === 'function'){
+            const p = window.buildSheetPayloadExact();
+            if(p && p.row) ensureMetaOnRow(p.row);
+          }
+        }catch(e){ /* ignore */ }
+        return origSync.apply(this, arguments);
+      };
+    }
+
+  }catch(e){
+    console.warn('HOTFIX v64 failed to apply', e);
+  }
+})();
+</script>
+</body>
+</html>
+
+<script>
+// ===== v60 FIX: missing helpers used by recalc/export/sync =====
+function clamp(n, a, b){ n=Number(n); if(!isFinite(n)) return a; return Math.max(a, Math.min(b, n)); }
+function maturityLevel(avg){
+  avg = Number(avg); if(!isFinite(avg)) return "—";
+  if(avg < 40) return "Низкая";
+  if(avg < 70) return "Средняя";
+  return "Высокая";
+}
+function computeCriticality(lossTotal, riskIndex, maturityAvg){
+  // lossTotal may be in money; convert to a 0-100 signal using log scaling.
+  const loss = Number(lossTotal);
+  const lossScore = isFinite(loss) && loss>0 ? clamp((Math.log10(loss+1)/7)*100, 0, 100) : 0; // ~ up to 10^7
+  const r = clamp(riskIndex, 0, 100);
+  const m = clamp(maturityAvg, 0, 100);
+  // higher risk + higher loss + lower maturity => higher criticality
+  const crit = 0.45*lossScore + 0.35*r + 0.20*(100-m);
+  return Math.round(clamp(crit, 0, 100));
+}
+function criticalityLabel(crit){
+  crit = Number(crit); if(!isFinite(crit)) return "—";
+  if(crit < 30) return "Низкая";
+  if(crit < 60) return "Средняя";
+  if(crit < 80) return "Высокая";
+  return "Критическая";
+}
+
+
+</script>
