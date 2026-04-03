@@ -2968,9 +2968,14 @@ function flattenForSheets(raw){
     // optional: lift KPI to simple names too
     if(raw.kpi && typeof raw.kpi === "object"){
       for(const k in raw.kpi){
-        out[k] = out[k] ?? raw.kpi[k];         // if sheet uses 'psi2Score' etc
-        out["kpi."+k] = raw.kpi[k];            // if sheet uses dot notation
+        out[k] = out[k] ?? raw.kpi[k];
+        out["kpi."+k] = raw.kpi[k];
       }
+      // explicit KPI -> sheet header aliases
+      if(raw.kpi.feas !== undefined && (out.feasScore === undefined || out.feasScore === "")) out.feasScore = raw.kpi.feas;
+      if(raw.kpi.prodFeas !== undefined && (out.prodFeasScore === undefined || out.prodFeasScore === "")) out.prodFeasScore = raw.kpi.prodFeas;
+      if(raw.kpi.prob !== undefined && (out.probIndex === undefined || out.probIndex === "")) out.probIndex = raw.kpi.prob;
+      if(raw.kpi.ready !== undefined && (out.readyIndex === undefined || out.readyIndex === "")) out.readyIndex = raw.kpi.ready;
     }
     // include full payload
     out.payload = raw;
