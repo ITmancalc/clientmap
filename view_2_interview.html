@@ -4148,7 +4148,7 @@ function buildSheetPayloadExact(){
 
   // KPI values (as numbers where appropriate)
   const kpiIds = ["psi2Score","psi2Label","techIndex","procIndex","riskIndex","coiTotal","recoverIndex","busIndex",
-    "obsolIndex","aiIndex","painIndex","feasScore","readyIndex","readyLabel","probIndex","probLabel","benchCount","benchProfileLabel"
+    "obsolIndex","aiIndex","painIndex","feasScore","prodFeasScore","readyIndex","readyLabel","probIndex","probLabel","benchCount","benchProfileLabel"
   ];
   kpiIds.forEach(id=>{
     const raw=_val(id);
@@ -4264,6 +4264,18 @@ function buildSheetPayloadExact(){
   // Ensure run_id and timestamp
   if(!out.run_id) out.run_id = (crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now());
   if(!out.timestamp) out.timestamp = new Date().toISOString();
+
+  // EXPLICIT KPI persistence for dashboard / Sheets
+  out.feasScore = _numFromText(document.getElementById("feasScore")?.textContent || out.feasScore || "");
+  out.prodFeasScore = _numFromText(document.getElementById("prodFeasScore")?.textContent || out.prodFeasScore || "");
+  out.probIndex = _numFromText(document.getElementById("probIndex")?.textContent || out.probIndex || "");
+  out.readyIndex = _numFromText(document.getElementById("readyIndex")?.textContent || out.readyIndex || "");
+  out.feas = out.feasScore;
+  out.prodFeas = out.prodFeasScore;
+  out["kpi.feas"] = out.feasScore;
+  out["kpi.prodFeas"] = out.prodFeasScore;
+  out["kpi.prob"] = out.probIndex;
+  out["kpi.ready"] = out.readyIndex;
 
   // Also include full JSON snapshot if someone adds "payload" column later
   out.payload = JSON.stringify(out);
