@@ -3013,6 +3013,18 @@ function flattenForSheets(raw){
         out["kpi."+k] = raw.kpi[k];            // if sheet uses dot notation
       }
     }
+    // exact sheet header aliases for KPI persistence
+    if(raw.kpi && typeof raw.kpi === "object"){
+      if(out.feasScore === undefined || out.feasScore === "" || out.feasScore === null) out.feasScore = raw.kpi.feas ?? "";
+      if(out.prodFeasScore === undefined || out.prodFeasScore === "" || out.prodFeasScore === null) out.prodFeasScore = raw.kpi.prodFeas ?? "";
+      if(out.probIndex === undefined || out.probIndex === "" || out.probIndex === null) out.probIndex = raw.kpi.prob ?? "";
+      if(out.readyIndex === undefined || out.readyIndex === "" || out.readyIndex === null) out.readyIndex = raw.kpi.ready ?? "";
+      if(out.painIndex === undefined || out.painIndex === "" || out.painIndex === null) out.painIndex = raw.kpi.pain ?? "";
+      if(out.busIndex === undefined || out.busIndex === "" || out.busIndex === null) out.busIndex = raw.kpi.bus ?? "";
+      if(out.recoverIndex === undefined || out.recoverIndex === "" || out.recoverIndex === null) out.recoverIndex = raw.kpi.recover ?? "";
+      if(out.obsolIndex === undefined || out.obsolIndex === "" || out.obsolIndex === null) out.obsolIndex = raw.kpi.obsol ?? "";
+      if(out.aiIndex === undefined || out.aiIndex === "" || out.aiIndex === null) out.aiIndex = raw.kpi.ai ?? "";
+    }
     // include full payload
     out.payload = raw;
   }
