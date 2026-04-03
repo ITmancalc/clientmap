@@ -4162,7 +4162,7 @@ function buildSheetPayloadExact(){
 
   // KPI values (as numbers where appropriate)
   const kpiIds = ["psi2Score","psi2Label","techIndex","procIndex","riskIndex","coiTotal","recoverIndex","busIndex",
-    "obsolIndex","aiIndex","painIndex","feasScore","readyIndex","readyLabel","probIndex","probLabel","benchCount","benchProfileLabel"
+    "obsolIndex","aiIndex","painIndex","feasScore","prodFeasScore","readyIndex","readyLabel","probIndex","probLabel","benchCount","benchProfileLabel"
   ];
   kpiIds.forEach(id=>{
     const raw=_val(id);
@@ -4282,6 +4282,14 @@ function buildSheetPayloadExact(){
   // Also include full JSON snapshot if someone adds "payload" column later
   out.payload = JSON.stringify(out);
 
+  // Explicit KPI values from indices block
+  out.feasScore = (document.getElementById("feasScore")?.textContent || out.feasScore || "").trim();
+  out.prodFeasScore = (document.getElementById("prodFeasScore")?.textContent || out.prodFeasScore || "").trim();
+  if(!out.pilot_readiness_pct && out.feasScore) out.pilot_readiness_pct = out.feasScore;
+  if(!out.prodFeas && out.prodFeasScore) out.prodFeas = out.prodFeasScore;
+  if(!out["kpi.feas"] && out.feasScore) out["kpi.feas"] = out.feasScore;
+  if(!out["kpi.prodFeas"] && out.prodFeasScore) out["kpi.prodFeas"] = out.prodFeasScore;
+
   // === Dashboard aliases (so analytics can read consistent keys) ===
   // Some dashboard widgets expect psi/ready/probability fields.
   const psi2Num = parseFloat(String(out.psi2Score||"").replace("%","").trim());
@@ -4302,7 +4310,7 @@ function buildSheetPayloadExact(){
       keysRef.forEach(k=>{ if(out[k] === undefined && cache[k] !== undefined) out[k] = cache[k]; });
 
       // Critical keys: не затираем сохранённые значения пустотой при сохранении из частичных разделов
-      const __criticalKeys = ["sales_manager", "presale_manager", "lpr", "sources", "workplaces", "servers", "branches", "vdi", "closed", "envNote", "virt", "hostingModel", "adDomains", "netSeg", "terminalFarms", "hwAge", "hwAccounting", "redundancy", "psi2Score", "psi2Label", "techIndex", "procIndex", "riskIndex", "coiTotal", "recoverIndex", "busIndex", "obsolIndex", "aiIndex", "painIndex", "feasScore", "readyIndex", "readyLabel", "probIndex", "probLabel", "benchCount", "benchProfileLabel"];
+      const __criticalKeys = ["sales_manager", "presale_manager", "lpr", "sources", "workplaces", "servers", "branches", "vdi", "closed", "envNote", "virt", "hostingModel", "adDomains", "netSeg", "terminalFarms", "hwAge", "hwAccounting", "redundancy", "psi2Score", "psi2Label", "techIndex", "procIndex", "riskIndex", "coiTotal", "recoverIndex", "busIndex", "obsolIndex", "aiIndex", "painIndex", "feasScore", "prodFeasScore", "readyIndex", "readyLabel", "probIndex", "probLabel", "benchCount", "benchProfileLabel"];
       __criticalKeys.forEach(k=>{
         if(out[k] === '' || out[k] === null || typeof out[k] === 'undefined'){
           const v = cache[k];
